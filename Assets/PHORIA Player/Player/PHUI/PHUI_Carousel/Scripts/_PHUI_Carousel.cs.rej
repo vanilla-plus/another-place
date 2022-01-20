@@ -1,0 +1,228 @@
+diff a/Player/PHUI/PHUI_Carousel/Scripts/_PHUI_Carousel.cs b/Player/PHUI/PHUI_Carousel/Scripts/_PHUI_Carousel.cs	(rejected hunks)
+@@ -49,26 +58,31 @@
+ 
+     public RectTransform center;    // Center to compare the distance for each button
+     
+     // Private Variables
+     public float[] distance;    // All buttons' distance to the center
+     public float[] distReposition;
++    public float[] startPos;
+     [SerializeField]
+     private bool dragging = false;  // Will be true, while we drag the panel
+     [SerializeField]
+     private int bttnDistance;   // Will hold the distance between the buttons
+     [SerializeField]
+     private int CurrentCarouselItem;   // To hold the number of the button, with smallest distance to center
+     [SerializeField]
+     private int PreviousCarouselItem;   // To hold the number of the button, with smallest distance to center
+ 
+     [SerializeField]
+     private int CarouselItemLength;
++
+     [SerializeField]
+     private bool targetNearestButton = true;
+ 
++    [SerializeField]
++    private bool WaitForTile = false;
++
+     public float StartDragPosition = 0;
+ 
+     private float PanelThresholdMin = 0;
+ 
+     //the first thing that happens - as the app manager adds carousel items, feed it into our own list 
+     public void AddNewCarouselItem(GameObject newItem)
+@@ -92,98 +107,143 @@
+     public void InitialiseCarousel()
+     {
+         //once we have items in the carousel we can sork out the item positions and widths
+         CarouselItemLength = CarouselItemList.Count;
+         distance = new float[CarouselItemLength];
+         distReposition = new float[CarouselItemLength];
++        startPos = new float[CarouselItemLength];
+ 
+         // Get distance between buttons
+         bttnDistance = (int)Mathf.Abs(CarouselItemList[1].GetComponent<RectTransform>().anchoredPosition.x - CarouselItemList[0].GetComponent<RectTransform>().anchoredPosition.x);
+ 
+         //set the starting tile - the middle one
+         int startingIndex = (int)Math.Ceiling((float)TotalCarouselItems / 2);
+         SetCarouselItemIndex(startingIndex-1);
+ 
+         Debug.Log("startingIndex : " + startingIndex);
+ 
+         CarouselIsReadyToGo = true;
++        Invoke("GetStartPosition", .01f);
++
+     }
+ 
++    public void GetStartPosition()
++    {
++        int i = 0;
++        foreach (GameObject tile in CarouselItemList)
++        {
++            Debug.Log("I'm going through tiles and my index is " + i);
++            startPos[i] = tile.GetComponent<RectTransform>().anchoredPosition.x;
++            i++;
++        }
++    }
+ 
+     //
+     void Update()
+     {
+-
++        //MAKE ONLY RUN IF CURRENTPOS DOESNT EQUAL LAST POS
+         if (CarouselIsReadyToGo)
+         {       
+ 
+             for (int i = 0; i < CarouselItemList.Count; i++)
+             {
+-                distReposition[i] = center.GetComponent<RectTransform>().position.x - CarouselItemList[i].GetComponent<RectTransform>().position.x;
++                distReposition[i] = panel.anchoredPosition.x + CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition.x;
++
+                 distance[i] = Mathf.Abs(distReposition[i]);
+ 
+                 if (distReposition[i] > 1200)
+                 {
+                     float curX = CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition.x;
+                     float curY = CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition.y;
+ 
+-                    Vector2 newAnchoredPos = new Vector2(curX + (CarouselItemLength * bttnDistance), curY);
+-                    CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition = newAnchoredPos;
++                    //Vector2 newAnchoredPos = new Vector2(curX + (CarouselItemLength * bttnDistance), curY);
++                    //CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition = newAnchoredPos;
+                 }
+ 
+                 if (distReposition[i] < -1200)
+                 {
+                     float curX = CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition.x;
+                     float curY = CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition.y;
+ 
+-                    Vector2 newAnchoredPos = new Vector2(curX - (CarouselItemLength * bttnDistance), curY);
+-                    CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition = newAnchoredPos;
++                    //Vector2 newAnchoredPos = new Vector2(curX - (CarouselItemLength * bttnDistance), curY);
++                    //CarouselItemList[i].GetComponent<RectTransform>().anchoredPosition = newAnchoredPos;
+                 }
+             }
+ 
+             if (targetNearestButton)
+             {
+ 
+-                float minDistance = Mathf.Min(distance);    // Get the min distance
++                    float minDistance = Mathf.Min(distance);    // Get the min distance
+ 
+-                for (int currentItem = 0; currentItem < CarouselItemList.Count; currentItem++)
+-                {
+-                    if (minDistance == distance[currentItem])
++                    for (int currentItem = 0; currentItem < CarouselItemList.Count; currentItem++)
+                     {
+-                        CurrentCarouselItem = currentItem;
++                        if (minDistance == distance[currentItem])
+ 
+-                        ShowHideNavButtons();                   
++                    {
++                            CurrentCarouselItem = currentItem;
++
++                            ShowHideNavButtons();
++                        }
+                     }
+-                }
++            }
++
++            if (WaitForTile)
++            {
++                CarouselScrollSpeed = MinCarouselScrollSpeed;
++            }
++            else
++            {
++                CarouselScrollSpeed = CarouselSpeed;
+             }
+ 
+             if (!dragging)
+             {
+                 PanelThresholdMin = panel.anchoredPosition.x;
+                 //	LerpToBttn(minButtonNum * -bttnDistance);
+-                LerpToPosition(-CarouselItemList[CurrentCarouselItem].GetComponent<RectTransform>().anchoredPosition.x);
++
++                float targetPos = -startPos[CurrentCarouselItem];
++                if (lastHighlight != null && lastHighlight.gameObject == CarouselItemList[CurrentCarouselItem])
++                {
++                    targetPos -= ((tileMax - tileMin) / 2);
++                    Debug.Log("I bet i'm not getting triggered ");
++                }
++
++                LerpToPosition(targetPos);
+             }
+             else
+             {
+                 Debug.Log("true  dragging ### panel.anchoredPosition.x" + panel.anchoredPosition.x);
+             }
+         }
+     }
+ 
+ 
++    public IEnumerator LerpToPosition(float startPos, float target, float time)
++    {
++        float normal = 0;
++        while (normal < 1)
++        {
++            normal += Time.deltaTime / time;
++
++
++            yield return null;
++        }
++    }
++
+     void LerpToPosition(float position)
+     {
+ 
+         //float newX = Mathf.Lerp(panel.anchoredPosition.x, position, Mathf.SmoothStep(0.0f, 1.0f, (Time.deltaTime * CarouselScrollSpeed)));
+ 
+         float newX = Mathf.Lerp(panel.anchoredPosition.x, position, Time.deltaTime * CarouselScrollSpeed);
+ 
+ 
+         if (Mathf.Abs(position - newX) < 2f)
+         {
+             newX = position;
++            WaitForTile = false;
+         }
+ 
+         //Debug.Log("LerpToPosition : newX: " + newX);
+ 
+         //if (Mathf.Abs(newX) >= Mathf.Abs(position) -1f && Mathf.Abs(newX) <= Mathf.Abs(position) + 1)
+         //{
+@@ -231,14 +291,16 @@
+             NavButtonLeft.SetActive(true);
+             NavButtonRight.SetActive(true);
+         }
+     }
+ 
+ 
+-    public void SetCarouselItemIndex(int itemIndex)
++    public void SetCarouselItemIndex(int itemIndex, bool waitForTileAnimation = false)
+     {
++        Debug.Log("PHUI_Carousel : SetCarouselItemIndex : waitForTileAnimation: " + waitForTileAnimation);
++        //WaitForTile = waitForTileAnimation;
+         targetNearestButton = false;
+         CurrentCarouselItem = itemIndex;
+     }
+ 
+     
+ 
+@@ -280,12 +342,18 @@
+     {
+         int index = buttonPressed.transform.GetSiblingIndex();
+         SetCarouselItemIndex(index);
+     }
+ 
+ 
++    public void AddNewHighlightTile(Selection_Tile lastHighlight)
++    {
++        if(this.lastHighlight != null) this.lastHighlight.SetTileInactive();
++        this.lastHighlight = lastHighlight;
++    }
++
+     public void DeactivateAllCarouselItems()
+     {
+         for (int i = 0; i < CarouselItemList.Count; i++)
+         {
+             Debug.LogFormat("i: {0} - Current: {1}",i, CurrentCarouselItem);
+             if (i != CurrentCarouselItem)

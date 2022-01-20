@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &462710541777962708
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 462710541777962711}
+  - component: {fileID: 462710541777962710}
+  - component: {fileID: 462710541777962705}
+  m_Layer: 0
+  m_Name: TimelineIntro
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &462710541777962711
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 462710541777962708}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &462710541777962710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 462710541777962708}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fb7b8bbe7ad4c448ad97016cf9354e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  debugFlags: 31
+  allowTimelineToLoop: 0
+  inclusiveMilestoneMode: 0
+  _t: 0
+  timelineLength: 0
+  timeDirectionIsPositive: 0
+  timelineState: 0
+  _currentChapter: 0
+  _chapterNormal: 0
+  _timelineNormal: 0
+  currentChapterName: 
+  chapters:
+  - name: 1. Reset UI
+    timeInSeconds: 0
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: '2. Show Onboarding / FadeIn OHS #1'
+    timeInSeconds: 2
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: '3. FadeOut OHS #1'
+    timeInSeconds: 7
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: '4. FadeIn OHS #2'
+    timeInSeconds: 1
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: '5. FadeOut OHS #2'
+    timeInSeconds: 7
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 6. FadeIn OHS Confirm
+    timeInSeconds: 1
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 7. Stop for confirmation
+    timeInSeconds: 4
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 8. FadeOut OHS Confirm
+    timeInSeconds: 1
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 9. Hide Onboarding
+    timeInSeconds: 1
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 10. FadeIn Loading App Assets
+    timeInSeconds: 1
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 11. FadeOut Loading App Assets
+    timeInSeconds: 2
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 12. Show Skybox and Show Splash Parent
+    timeInSeconds: 0.5
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 13. FadeIn Splash Title
+    timeInSeconds: 1
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 14. FadeIn Splash Logos
+    timeInSeconds: 2
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 15. FadeOut Splash Parent
+    timeInSeconds: 4
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  - name: 16. Hide Splash / FadeIn Selection Carousel
+    timeInSeconds: 1
+    interpolationType: 0
+    startTime: 0
+    endTime: 0
+  UIManager: {fileID: 0}
+--- !u!114 &462710541777962705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 462710541777962708}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35597e5561e6fd24f8cf32356d962c1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  debugFlags: 31
+  timeMultiplier: 1
+  timeline: {fileID: 462710541777962710}
