@@ -1,6 +1,7 @@
 
 
 #define CURVEDUI_PRESENT //If you're an asset creator and want to see if CurvedUI is imported, just use "#if CURVEDUI_PRESENT [your code] #endif"
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -22,6 +23,7 @@ namespace CurvedUI
     [RequireComponent(typeof(Canvas))]
     public class CurvedUISettings : MonoBehaviour
     {
+        public const string Version = "3.3";
 
         #region SETTINGS
         //Global settings
@@ -34,8 +36,6 @@ namespace CurvedUI
         bool interactable = true;
 		[SerializeField]
 		bool blocksRaycasts = true;
-        [SerializeField]
-        bool raycastMyLayerOnly = true;
         [SerializeField]
         bool forceUseBoxCollider = false;
 
@@ -78,8 +78,7 @@ namespace CurvedUI
             // If this canvas is on Default layer, switch it to UI layer..
             // this is to make sure that when using raycasting to detect interactions, 
             // nothing will interfere with it.
-            if (RaycastMyLayerOnly && gameObject.layer == 0)
-                this.gameObject.layer = 5;
+            if (gameObject.layer == 0) this.gameObject.layer = 5;
 
             //save initial variables
             savedRectSize = RectTransform.rect.size;
@@ -88,22 +87,33 @@ namespace CurvedUI
         void Start()
         {
             if (Application.isPlaying)
-            {   
-                
+            {    
                 // lets get rid of any raycasters and add our custom one
                 // It will be responsible for handling interactions.
-                GraphicRaycaster castie = GetComponent<GraphicRaycaster>();
-
-                if (castie != null)
+                BaseRaycaster[] raycasters = GetComponents<BaseRaycaster>();
+                foreach(BaseRaycaster caster in raycasters)
                 {
-                    if (!(castie is CurvedUIRaycaster))
-                    {
-                        Destroy(castie);
-                        this.gameObject.AddComponent<CurvedUIRaycaster>();
-                    }
+                    if (!(caster is CurvedUIRaycaster))
+                        caster.enabled = false;
                 }
-                else {
-                    this.gameObject.AddComponent<CurvedUIRaycaster>();
+                this.gameObject.AddComponentIfMissing<CurvedUIRaycaster>();
+
+                //find if there are any child canvases that may break interactions
+                Canvas[] canvases = GetComponentsInChildren<Canvas>();
+                foreach(Canvas cnv in canvases)
+                {
+                    if (cnv.gameObject != this.gameObject)
+                    {
+                        Transform trans = cnv.transform;
+                        string hierarchyName = trans.name;
+                       
+                        while(trans.parent != null)
+                        {
+                            hierarchyName = trans.parent.name + "/" + hierarchyName;
+                            trans = trans.parent;
+                        }
+                        Debug.LogWarning("CURVEDUI: Interactions on nested canvases are not supported. You won't be able to interact with any child object of [" + hierarchyName + "]", cnv.gameObject);
+                    }
                 }
             }
 
@@ -651,9 +661,10 @@ namespace CurvedUI
         /// <summary>
         /// Should the raycaster take other layers into account to determine if canvas has been interacted with.
         /// </summary>
+        [Obsolete("Use RaycastLayerMask property instead.")]
         public bool RaycastMyLayerOnly {
-            get { return raycastMyLayerOnly; }
-            set { raycastMyLayerOnly = value; }
+            get { return true; }
+            set { }
         }
 
         /// <summary>

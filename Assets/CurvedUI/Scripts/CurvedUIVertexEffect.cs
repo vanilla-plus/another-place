@@ -65,7 +65,11 @@ namespace CurvedUI
         [SerializeField] [HideInInspector] Vector3 savedUp;
         [SerializeField] [HideInInspector] Vector2 savedRectSize;
         [SerializeField] [HideInInspector] Color savedColor;
+        #if UNITY_2020_2_OR_NEWER
+        [SerializeField] [HideInInspector] Vector4 savedTextUV0;
+        #else
         [SerializeField] [HideInInspector] Vector2 savedTextUV0;
+        #endif
         [SerializeField] [HideInInspector] float savedFill;
         #endregion
 
@@ -75,7 +79,8 @@ namespace CurvedUI
         protected override void Awake()
         {
             base.Awake();
-
+            
+            
             myGraphic = GetComponent<Graphic>();
             myText = GetComponent<Text>();
 
@@ -212,7 +217,7 @@ namespace CurvedUI
                     {
                         savedPos = testedPos;
                         curvingRequired = true;
-                        // Debug.Log("crv req - tested pos: " + testedPos, this.gameObject);
+                        //Debug.Log("crv req - tested pos: " + testedPos, this.gameObject);
                     }
                 }
 
@@ -318,10 +323,13 @@ namespace CurvedUI
             {
                 for (int i = 0; i < m_curvedVerts.Count; i += 4)
                 {
+                    int currentVertCount = vh.currentVertCount;
                     for (int v = 0; v < 4; v++)//create a quad
-                        m_quad[v] = m_curvedVerts[i + v];
+                        vh.AddVert( m_curvedVerts[i + v]);
+                    
+                    vh.AddTriangle(currentVertCount, currentVertCount + 1, currentVertCount + 2);
+                    vh.AddTriangle(currentVertCount + 2, currentVertCount + 3, currentVertCount);
 
-                    vh.AddUIVertexQuad(m_quad); // add it to the list
                 }
             }
             else vh.AddUIVertexTriangleStream(m_curvedVerts);
@@ -620,8 +628,13 @@ namespace CurvedUI
         /// <param name="quad">Quad.</param>
         /// <param name="x">The x coordinate.</param>
         /// <param name="y">The y coordinate.</param>
+        #if UNITY_2020_2_OR_NEWER
+        private Vector4 _uv0;
+        private Vector4 _uv1;
+        #else
         private Vector2 _uv0;
         private Vector2 _uv1;
+        #endif
         private Vector3 _pos;
         UIVertex TesselateQuad(float x, float y)
         {
@@ -647,10 +660,11 @@ namespace CurvedUI
 
             //4. return output
             m_ret.position = _pos;
-            //ret.color = Color32.Lerp(Color32.Lerp(quad[3].color, quad[1].color, y), Color32.Lerp(quad[0].color, quad[2].color, y), x);
             m_ret.color = m_quad[0].color; //used instead to save performance. Color lerps are expensive.
             m_ret.uv0 = _uv0;
             m_ret.uv1 = _uv1;
+            m_ret.uv2 = m_quad[0].uv2;
+            m_ret.uv3 = m_quad[0].uv3;
             m_ret.normal = m_quad[0].normal;
             m_ret.tangent = m_quad[0].tangent;
 

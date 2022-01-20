@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Security.Permissions;
 
 namespace CurvedUI {
 
@@ -18,6 +19,13 @@ namespace CurvedUI {
         [SerializeField]
         [Tooltip("If true, when player clicks the trigger on the other hand, we'll instantly set it as UI controlling hand and move the pointer to it.")]
         bool autoSwitchHands = true;
+
+        [Header("Optional")] 
+        [SerializeField] [Tooltip("If set, pointer will be placed as a child of this transform, instead of the current VR SDKs Camera Rig.")]
+        private Transform leftHandOverride;
+        [SerializeField] [Tooltip("If set, pointer will be placed as a child of this transform, instead of the current VR SDKs Camera Rig.")]
+        private Transform rightHandOverride;
+        
 #pragma warning restore 414
 #pragma warning restore 0649
 
@@ -45,9 +53,11 @@ namespace CurvedUI {
 
             //for Oculus Go and GearVR, switch automatically if a different controller is connected.
             //This covers the case where User changes hand setting in Oculus Go menu and gets back to our app.
-            if (activeCont == OVRInput.Controller.LTrackedRemote && CurvedUIInputModule.Instance.UsedHand != CurvedUIInputModule.Hand.Left)
+            if ((activeCont == OVRInput.Controller.LTouch || activeCont == OVRInput.Controller.LHand)
+                && CurvedUIInputModule.Instance.UsedHand != CurvedUIInputModule.Hand.Left)
                 SwitchHandTo(CurvedUIInputModule.Hand.Left);
-            else if (activeCont == OVRInput.Controller.RTrackedRemote && CurvedUIInputModule.Instance.UsedHand != CurvedUIInputModule.Hand.Right)
+            else if ((activeCont == OVRInput.Controller.RTouch || activeCont == OVRInput.Controller.RHand) 
+                && CurvedUIInputModule.Instance.UsedHand != CurvedUIInputModule.Hand.Right)
                 SwitchHandTo(CurvedUIInputModule.Hand.Right);
 
             if(autoSwitchHands){
@@ -126,6 +136,32 @@ namespace CurvedUI {
                 }
             }
         }
+        
+#elif CURVEDUI_UNITY_XR
+        void Start()
+        {
+            //initial setup in proper hand
+            SwitchHandTo(CurvedUIInputModule.Instance.UsedHand);
+        }
+        void Update()
+        {
+           if (!autoSwitchHands || CurvedUIInputModule.ControlMethod != CurvedUIInputModule.CUIControlMethod.UNITY_XR) return;
+
+           bool pressed = false;
+           if (CurvedUIInputModule.Instance.RightXRController != null && CurvedUIInputModule.Instance.UsedHand != CurvedUIInputModule.Hand.Right)
+           {
+               CurvedUIInputModule.Instance.GetXrControllerButtonState(ref pressed, CurvedUIInputModule.Hand.Right);
+
+               if(pressed) SwitchHandTo(CurvedUIInputModule.Hand.Right);
+           } 
+                
+           if (CurvedUIInputModule.Instance.LeftXRController != null && CurvedUIInputModule.Instance.UsedHand != CurvedUIInputModule.Hand.Left)
+           {
+               CurvedUIInputModule.Instance.GetXrControllerButtonState(ref pressed, CurvedUIInputModule.Hand.Left);
+
+               if(pressed) SwitchHandTo(CurvedUIInputModule.Hand.Left);
+           }
+        }
 #endif
 
 
@@ -138,6 +174,16 @@ namespace CurvedUI {
 
             if (CurvedUIInputModule.Instance.ControllerTransform)
             {
+                //hand overrides
+                if (newHand ==  CurvedUIInputModule.Hand.Left && leftHandOverride)
+                {
+                    CurvedUIInputModule.Instance.PointerTransformOverride = leftHandOverride;
+                }
+                if (newHand ==  CurvedUIInputModule.Hand.Right && rightHandOverride)
+                {
+                    CurvedUIInputModule.Instance.PointerTransformOverride = rightHandOverride;
+                }
+
                 LaserBeam.transform.SetParent(CurvedUIInputModule.Instance.ControllerTransform);
                 LaserBeam.transform.ResetTransform();
                 LaserBeam.transform.LookAt(LaserBeam.transform.position + CurvedUIInputModule.Instance.ControllerPointingDirection);
