@@ -105,3 +105,4 @@ Material:
     - _SunColor: {r: 0.3615611, g: 0.46560714, b: 0.6132076, a: 0}
     - _SunVector: {r: 0, g: 1, b: 0, a: 0}
     - _Tint: {r: 0.7764706, g: 0.6784314, b: 0.74509805, a: 0.5}
+  m_BuildTextureStacks: []
