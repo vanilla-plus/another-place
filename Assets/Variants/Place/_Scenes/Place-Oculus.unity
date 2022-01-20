@@ -1710,6 +1710,7 @@ MonoBehaviour:
   initial: {fileID: 518176879}
   confirmation: {fileID: 1651577494}
   quitting: {fileID: 723079752}
+  _state: -1
 --- !u!4 &590877697
 Transform:
   m_ObjectHideFlags: 0
@@ -5602,7 +5603,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   initialised: 0
   ShowAppDebugLogs: 1
-  JustLocalContent: 1
   VideoController: {fileID: 491764925}
   TimelineIntro: {fileID: 928652515}
   ArtAndEffects: {fileID: 823988748}
@@ -7581,7 +7581,7 @@ MonoBehaviour:
   m_text: We record some anonymised data to help us understand how place is being
     used and to help us improve place in the future
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 6ca42843b15e53446920a2dbf11076f4, type: 2}
+  m_fontAsset: {fileID: 0}
   m_sharedMaterial: {fileID: 21000012043276300, guid: 6ca42843b15e53446920a2dbf11076f4,
     type: 2}
   m_fontSharedMaterials: []
@@ -9750,7 +9750,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: Look at the circle to begin
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 6ca42843b15e53446920a2dbf11076f4, type: 2}
+  m_fontAsset: {fileID: 0}
   m_sharedMaterial: {fileID: 21000012043276300, guid: 6ca42843b15e53446920a2dbf11076f4,
     type: 2}
   m_fontSharedMaterials: []

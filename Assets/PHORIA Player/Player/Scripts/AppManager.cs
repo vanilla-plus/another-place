@@ -34,7 +34,7 @@ public class AppManager : MonoBehaviour
     [Header("=== Local Content Options ==================================")]
     
     //is it Just Local Content? if true, just assume local content is fine and no downloading is required.
-    public bool JustLocalContent = false;
+//    public bool JustLocalContent = false;
     // public LocalContentManager LocalContentManager;
 
     [Header("Local storage folder")]
@@ -174,7 +174,7 @@ public class AppManager : MonoBehaviour
     void Awake()
     {
         _instance = this;
-        Initialise();
+//        Initialise();
     }
 
 
@@ -186,39 +186,39 @@ public class AppManager : MonoBehaviour
 
 //        IsInternetConnected = false;
 
-        IsInternetConnected = CheckIfOnline();
-        JustLocalContent    = !IsInternetConnected;
+//        IsInternetConnected = CheckIfOnline();
+//        JustLocalContent    = !IsInternetConnected;
 
 //        await CheckIfOnline(callback: (online) => { JustLocalContent = !online; });
 
-        Debug.Log($"CheckStartUpConnection Initialise");
+//        Debug.Log($"CheckStartUpConnection Initialise");
         
-        Screen.sleepTimeout = SleepTimeout.NeverSleep;
+//        Screen.sleepTimeout = SleepTimeout.NeverSleep;
         //ContentManager.Init();
-        Application.targetFrameRate = -1;
-        Debug.Log($"OVRManager.sdkVersion:         " + OVRManager.sdkVersion);
-        Debug.Log($"Target frame rate is +         " + Application.targetFrameRate);
-        Debug.Log($"OVRManager.batteryTemperature: " + OVRManager.batteryTemperature);
-        Debug.Log($"OVRManager.gpuUtilSupported:   " + OVRManager.gpuUtilSupported);
+//        Application.targetFrameRate = -1;
+//        Debug.Log($"OVRManager.sdkVersion:         " + OVRManager.sdkVersion);
+//        Debug.Log($"Target frame rate is +         " + Application.targetFrameRate);
+//        Debug.Log($"OVRManager.batteryTemperature: " + OVRManager.batteryTemperature);
+//        Debug.Log($"OVRManager.gpuUtilSupported:   " + OVRManager.gpuUtilSupported);
 
         //turn debug logs on or off
-        UnityEngine.Debug.unityLogger.logEnabled = ShowAppDebugLogs;
+//        UnityEngine.Debug.unityLogger.logEnabled = ShowAppDebugLogs;
 
 
-        UnityEngine.XR.XRSettings.eyeTextureResolutionScale = 1.4f;
-        OVRPlugin.cpuLevel = 0;
-        OVRPlugin.gpuLevel = 0;
-        OVRManager.cpuLevel = 0;
-        OVRManager.gpuLevel = 0;
-        Debug.Log($"OVRPlugin.cpuLevel: {OVRPlugin.cpuLevel} / OVRPlugin.gpuLevel {OVRPlugin.gpuLevel}");
-        Debug.Log($"OVRManager.cpuLevel: {OVRManager.cpuLevel} / OVRManager.gpuLevel {OVRManager.gpuLevel}");
+//        UnityEngine.XR.XRSettings.eyeTextureResolutionScale = 1.4f;
+//        OVRPlugin.cpuLevel = 0;
+//        OVRPlugin.gpuLevel = 0;
+//        OVRManager.cpuLevel = 0;
+//        OVRManager.gpuLevel = 0;
+//        Debug.Log($"OVRPlugin.cpuLevel: {OVRPlugin.cpuLevel} / OVRPlugin.gpuLevel {OVRPlugin.gpuLevel}");
+//        Debug.Log($"OVRManager.cpuLevel: {OVRManager.cpuLevel} / OVRManager.gpuLevel {OVRManager.gpuLevel}");
         //OVRManager.fixedFoveatedRenderingLevel = OVRManager.FixedFoveatedRenderingLevel.High;
 
         //Clearout any orphaned chunks for all locally stored experiences at start up
         //StartCoroutine(ContentManager.Instance.ClearChunks(LocalStorage));
 
         TimelineIntro.gameObject.SetActive(true);
-        Debug.Log($"IsInternetConnected = {IsInternetConnected}, timeline going");
+//        Debug.Log($"IsInternetConnected = {IsInternetConnected}, timeline going");
 
         //setting up events for the precheck - some assets like images and description JSON are mandatory for creating the navigation
         //these events will fire when the remote and local file lists have been created 
@@ -226,8 +226,8 @@ public class AppManager : MonoBehaviour
         UIManager.Fader.FadeIn(1f);
         CheckForFirstTimeRunThrough();
 
-        Directory.CreateDirectory(LocalStorage);
-        await ContentManager.BuildFolderLists(LocalStorage);
+//        Directory.CreateDirectory(LocalStorage);
+//        await ContentManager.BuildFolderLists(LocalStorage);
 
         //this event will fire when the comparison of the lists and subsequent downloads have finished and onboarding can begin
 
@@ -238,7 +238,7 @@ public class AppManager : MonoBehaviour
     //// Start is called before the first frame update
     //void Start()
     //{
-        Screen.sleepTimeout = SleepTimeout.NeverSleep;
+//        Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
         AppStart();
     }
@@ -421,7 +421,7 @@ public class AppManager : MonoBehaviour
                 OnboardingTriggered.Invoke();
                 
                 TimelineIntro.MotorMoving(true);
-                QuitUI.instance.SetState(1);
+                QuitUI.i.SetState(1);
                 break;
 
             case AppStates.Menu:
@@ -440,7 +440,7 @@ public class AppManager : MonoBehaviour
                 //Debug.Log("In the menu");
                 TimelineIntro.gameObject.SetActive(false);
                 UIManager.MenuUI_active();
-                QuitUI.instance.SetState(1);
+                QuitUI.i.SetState(1);
                 if (MenuFirstTime)
                 {
                     //Debug.Log("MenuFirstTime: " + MenuFirstTime);
@@ -477,7 +477,7 @@ public class AppManager : MonoBehaviour
                 VideoController.PlayVideo();
                 videoSphere.SetActive(true);
                 UIManager.Fader.FadeIn(inTime: 0.5f, optionalWaitTime: 1f);
-                QuitUI.instance.SetState(0);
+                QuitUI.i.SetState(0);
                 break;
 
         }
@@ -820,35 +820,37 @@ public class AppManager : MonoBehaviour
 
 
     //### For remote content manager
-    void SetUpContent()
-    {
-        //Debug.Log("AppManager : Awake : LocalStorage = [" + LocalStorage + "]");
+//    void SetUpContent()
+//    {
+//        //Debug.Log("AppManager : Awake : LocalStorage = [" + LocalStorage + "]");
+//
+//        //check for the set local storage path and create it if not there
+//        if (!Directory.Exists(LocalStorage))
+//        {
+//            Directory.CreateDirectory(LocalStorage);
+//            //Debug.Log("AppManager : Awake() : ERROR >> Couldn't find local storage, creating: " + LocalStorage);
+//        }
+//        else
+//        {
+//            //Debug.Log("AppManager : Awake() : OK >> Found Local storage folder. Nice. - " + LocalStorage);
+//        }
+//
+//        //If using remote content, get the file list
+//        if (Place.IsOnline)
+//        {
+//            if (ContentManager.GetMissingFileKeys(requiredPath).Count > 0)
+//            {
+//                AWS.S3.Download download = new AWS.S3.Download(localFolderPath: Path.Combine(path1: LocalStorage, path2: requiredPath), remoteFolderPath: requiredPath);
+//                download.onDownloadProgress += (object sender, AWS.S3.DownloadProgressArgs downloadProgressArgs) =>
+//                {
+//                    if (downloadProgressArgs.isDone) ChangeState(AppStates.Onboarding);
+//                };
+//            }
+//            else ChangeState(AppStates.Onboarding);
+//        }
+//    }
 
-        //check for the set local storage path and create it if not there
-        if (!Directory.Exists(LocalStorage))
-        {
-            Directory.CreateDirectory(LocalStorage);
-            //Debug.Log("AppManager : Awake() : ERROR >> Couldn't find local storage, creating: " + LocalStorage);
-        }
-        else
-        {
-            //Debug.Log("AppManager : Awake() : OK >> Found Local storage folder. Nice. - " + LocalStorage);
-        }
-
-        //If using remote content, get the file list
-        if (!JustLocalContent)
-        {
-            if (ContentManager.GetMissingFileKeys(requiredPath).Count > 0)
-            {
-                AWS.S3.Download download = new AWS.S3.Download(localFolderPath: Path.Combine(path1: LocalStorage, path2: requiredPath), remoteFolderPath: requiredPath);
-                download.onDownloadProgress += (object sender, AWS.S3.DownloadProgressArgs downloadProgressArgs) =>
-                {
-                    if (downloadProgressArgs.isDone) ChangeState(AppStates.Onboarding);
-                };
-            }
-            else ChangeState(AppStates.Onboarding);
-        }
-    }
+    void SetUpContent() => ChangeState(AppStates.Onboarding);
 
     /*void PreparePrecheck()
     {

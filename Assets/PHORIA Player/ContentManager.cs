@@ -7,6 +7,8 @@ using Amazon.S3.Model;
 using SimpleDiskUtils;
 using UnityEngine;
 
+using static Place;
+
 public static class ContentManager
 {
     [Serializable]
@@ -43,6 +45,8 @@ public static class ContentManager
 
             foreach (string folder in path)
             {
+                Debug.LogWarning($"Looking for subdirectory {folder} in {currentFolder.GetAbsolutePath()}");
+                
                 if (currentFolder.subFolders.ContainsKey(folder))
                 {
                     currentFolder = currentFolder.subFolders[folder];
@@ -129,51 +133,80 @@ public static class ContentManager
         }
     }
 
-    public static string localFolderPath;
+//    public static string localFolderPath;
     
     public static Folder localDirectory;
-    public static Folder localContentDirectory;
     
     public static Folder remoteDirectory;
-    public static Folder remoteContentDirectory;
     
-    public static async Task BuildFolderLists(string localFolderPath)
+//    public static async Task BuildFolderLists(string localFolderPath)
+//    {
+//        localDirectory = new Folder();
+//        remoteDirectory = new Folder();
+//
+//        ContentManager.localFolderPath = localFolderPath;
+//
+//        BuildLocalDirectory("", localDirectory);
+//        await BuildRemoteDirectoryAsync("", remoteDirectory);
+//    }
+
+
+    public static void BuildRootFolder()
     {
-        localDirectory = new Folder();
+        localDirectory = new Folder(parent: null,
+                                    name: Paths.Local.Root);
+
+
+    }
+
+    public static async Task BuildFolderLists()
+    {
+        localDirectory  = new Folder();
         remoteDirectory = new Folder();
 
-        ContentManager.localFolderPath = localFolderPath;
+//        ContentManager.localFolderPath = localFolderPath;
 
         BuildLocalDirectory("", localDirectory);
         await BuildRemoteDirectoryAsync("", remoteDirectory);
-
-        localContentDirectory = localDirectory.GetRelativeFolder("Content");
-        remoteContentDirectory = remoteDirectory.GetRelativeFolder("Content");
     }
 
     static void BuildLocalDirectory(string path, Folder folder)
     {
-        {
-            DirectoryInfo directoryInfo = new DirectoryInfo(Path.Combine(localFolderPath, path));
+        Debug.LogWarning("Building local directory at\n" + Paths.Local.Root);
 
-            foreach (FileInfo file in directoryInfo.GetFiles()) folder.files.Add(file.Name, new File(folder, file.Name, file.Extension, (ulong)file.Length));
-            foreach (DirectoryInfo directory in directoryInfo.GetDirectories()) folder.subFolders.Add(directory.Name, new Folder(folder, directory.Name));
+        if (!Directory.Exists(Paths.Local.Root))
+        {
+            Directory.CreateDirectory(Paths.Local.Root);
         }
+
+        DirectoryInfo directoryInfo = new DirectoryInfo(Path.Combine(Paths.Local.Root,
+                                                                     path));
+
+        foreach (FileInfo file in directoryInfo.GetFiles())
+            folder.files.Add(file.Name,
+                             new File(folder,
+                                      file.Name,
+                                      file.Extension,
+                                      (ulong)file.Length));
+
+        foreach (DirectoryInfo directory in directoryInfo.GetDirectories())
+            folder.subFolders.Add(directory.Name,
+                                  new Folder(folder,
+                                             directory.Name));
 
         foreach (Folder subFolder in folder.subFolders.Values) BuildLocalDirectory(Path.Combine(path, subFolder.name), subFolder);
     }
 
     static async Task BuildRemoteDirectoryAsync(string key, Folder folder)
     {
-        Task<ListObjectsV2Response> task = AWS.S3.ListObjectsV2Async(key);
-        await task;
-
+        var results = await AWS.S3.ListObjectsV2Async(key);
+        
         string[] path;
         string fileName;
         int extensionIndex;
         Folder currentFolder = folder;
 
-        foreach (S3Object s3Object in task.Result.S3Objects)
+        foreach (S3Object s3Object in results.S3Objects)
         {
             path = s3Object.Key.Split('/');
             fileName = path[path.Length - 1];
@@ -188,9 +221,8 @@ public static class ContentManager
 
             if (extensionIndex >= 0) currentFolder.files.Add(fileName, new File(currentFolder, fileName, fileName.Substring(extensionIndex), (ulong)s3Object.Size));
         }
-
-        return;
     }
+
 
     public static List<string> GetMissingFileKeys(string path)
     {
@@ -198,11 +230,17 @@ public static class ContentManager
         Debug.Log(path);
         Folder currentFolder = remoteDirectory.GetRelativeFolder(path);
 
-        foreach (File file in currentFolder.files.Values) if (localDirectory.GetRelativeFile(path, file.name) == null) missingFileKeys.Add($"{path}/{file.name}");
+        foreach (File file in currentFolder.files.Values)
+            if (localDirectory.GetRelativeFile(path,
+                                               file.name) ==
+                null)
+                missingFileKeys.Add($"{path}/{file.name}");
+
         foreach (Folder subFolder in currentFolder.subFolders.Values) missingFileKeys.AddRange(GetMissingFileKeys(subFolder.GetAbsolutePath()));
 
         return missingFileKeys;
     }
+
 
     public static long GetAvailableDiscSpace()
     {

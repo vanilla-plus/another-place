@@ -328,7 +328,8 @@ public class Selection_Tile : MonoBehaviour
 
         SetTileState(TileStates.idle);
         //Debug.Log("HEY YOU! The video path is: " + videoPath + " and the other one is: "+SelectionBasePath);
-        if (AppManager.Instance.JustLocalContent) return;
+
+        if (!Place.IsOnline) return;
 
         //Debug.Log(" ===== " + Experience.experienceTitle + " ===== START ====== SelectionIsReady  " + SelectionIsReady);
 //        ResetFileSizeValues();

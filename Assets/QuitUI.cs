@@ -4,51 +4,69 @@ using UnityEngine;
 
 public class QuitUI : MonoBehaviour
 {
-    public static QuitUI instance;
-    [SerializeField] GameObject self, initial, confirmation, quitting;
-    int state = 0;
+    public static QuitUI i;
+    [SerializeField]
+    public GameObject self, initial, confirmation, quitting;
 
-    private void Start()
+    [SerializeField]
+    private int _state = -1;
+    public int state
     {
-        if (instance == null)
+        get => _state;
+        set
         {
-            instance = this;
-            instance.SetState(0);
-        }
-        else
-        {
-            Debug.LogError("[QuitUI : Start] An instance of QuitUI already exists. Destroying 'this' now.");
-            Destroy(this);
+            _state = Mathf.Clamp(value: value,
+                                 min: 0,
+                                 max: 3);
+            
+            self.SetActive(_state         != 0);
+            initial.SetActive(_state      == 1);
+            confirmation.SetActive(_state == 2);
+            quitting.SetActive(_state     == 3);
+            
+//            if (_state == 0) self.SetActive(false);
+//            else
+//            {
+//                instance.self.SetActive(true);
+//                instance.initial.SetActive(_state      == 1);
+//                instance.confirmation.SetActive(_state == 2);
+//                instance.quitting.SetActive(_state     == 3);
+//            }
         }
     }
 
-    public void SetState(int state)
+
+    private void Awake()
     {
-        if (state < 0 || state > 3)
-        {
-            Debug.LogError($"[QuitUI : SetState] {state} is not a valid state. Setting state to 0.");
-            state = 0;
-        }
+        i = this;
 
-        this.state = state;
-
-        if (state == 0) instance.self.SetActive(false);
-        else
-        {
-            instance.self.SetActive(true);
-            instance.initial.SetActive(state == 1);
-            instance.confirmation.SetActive(state == 2);
-            instance.quitting.SetActive(state == 3);
-        }
+        state = 0;
     }
+
+
+    public void SetState(int newState) => state = newState;
+
+//    public void SetState(int newState)
+//    {
+//        
+//        
+//        if (newState == 0) i.self.SetActive(false);
+//        else
+//        {
+//            i.self.SetActive(true);
+//            i.initial.SetActive(newState == 1);
+//            i.confirmation.SetActive(newState == 2);
+//            i.quitting.SetActive(newState == 3);
+//        }
+//    }
 
     public async void Quit()
     {
-        SetState(3);
+        state = 3;
         Debug.Log("EndSession Start");
         System.DateTime startTime = System.DateTime.Now;
         await Analytics.EndSession(false);
-        Debug.Log("EndSession Complete " + (System.DateTime.Now - startTime).TotalMilliseconds.ToString());
+        Debug.Log("EndSession Complete " + (System.DateTime.Now - startTime).TotalMilliseconds);
         Application.Quit();
     }
 }
