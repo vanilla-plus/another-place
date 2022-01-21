@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-
 #if CURVEDUI_TMP || TMP_PRESENT
 using TMPro;
 #endif
+[assembly: CurvedUI.OptionalDependency("TMPro.TextMeshProUGUI", "CURVEDUI_TMP")]
+
 
 //To use this class you have to add CURVEDUI_TMP to your define symbols. You can do it in project settings.
 //To learn how to do it visit http://docs.unity3d.com/Manual/PlatformDependentCompilation.html and search for "Platform Custom Defines"
@@ -17,26 +18,26 @@ namespace CurvedUI
 #if CURVEDUI_TMP || TMP_PRESENT
 
         //internal
-        CurvedUIVertexEffect crvdVE;
-        TextMeshProUGUI tmpText;
-        CurvedUISettings mySettings;
+        private CurvedUIVertexEffect crvdVE;
+        private TextMeshProUGUI tmpText;
+        private CurvedUISettings mySettings;
 
-        List<UIVertex> m_UIVerts = new List<UIVertex>();
-        UIVertex m_tempVertex;
-        CurvedUITMPSubmesh m_tempSubMsh;
+        private List<UIVertex> m_UIVerts = new List<UIVertex>();
+        private UIVertex m_tempVertex;
+        private CurvedUITMPSubmesh m_tempSubMsh;
 
-        Vector2 savedSize;
-        Vector3 savedUp;
-        Vector3 savedPos;
-        Vector3 savedLocalScale;
-        Vector3 savedGlobalScale;
-        List<CurvedUITMPSubmesh> subMeshes = new List<CurvedUITMPSubmesh>();
+        private Vector2 savedSize;
+        private Vector3 savedUp;
+        private Vector3 savedPos;
+        private Vector3 savedLocalScale;
+        private Vector3 savedGlobalScale;
+        private List<CurvedUITMPSubmesh> subMeshes = new List<CurvedUITMPSubmesh>();
 
         //flags
         public bool Dirty = false; // set this to true to force mesh update.
-        bool curvingRequired = false;
-        bool tesselationRequired = false;
-        bool quitting = false;
+        private bool curvingRequired = false;
+        private bool tesselationRequired = false;
+        private bool quitting = false;
 
         //mesh data
         private Vector3[] vertices;
@@ -122,7 +123,7 @@ namespace CurvedUI
                         enabled = false;
                         return;
                     }
-
+                    
                     //Get the flat vertices from TMP object.
                     //store a copy of flat UIVertices for later so we dont have to retrieve the Mesh every framee.
                     tmpText.renderMode = TMPro.TextRenderFlags.Render;
@@ -144,7 +145,7 @@ namespace CurvedUI
                     savedSize = (transform as RectTransform).rect.size;
                     savedUp = mySettings.transform.worldToLocalMatrix.MultiplyVector(transform.up);
                     savedPos = mySettings.transform.worldToLocalMatrix.MultiplyPoint3x4(transform.position);
-
+                    
                     //reset flags
                     tesselationRequired = false;
                     curvingRequired = false;
@@ -157,7 +158,10 @@ namespace CurvedUI
                 }
 
                 //Upload mesh to TMP Object's renderer
-                tmpText.canvasRenderer.SetMesh(tmpText.mesh);
+                if(tmpText.text.Length > 0)
+                    tmpText.canvasRenderer.SetMesh(tmpText.mesh);
+                else 
+                    tmpText.canvasRenderer.Clear();
             }
         }
         #endregion
@@ -292,15 +296,21 @@ namespace CurvedUI
                 //Debug.Log("global scale changed");
                 return true;
             }
-            else if (!savedPos.AlmostEqual(mySettings.transform.worldToLocalMatrix.MultiplyPoint3x4(transform.position)))
-            {
-                // Debug.Log("pos changed");
-                return true;
-            }
             else if (!savedUp.AlmostEqual(mySettings.transform.worldToLocalMatrix.MultiplyVector(transform.up)))
             {
                 // Debug.Log("up changed");
                 return true;
+            }
+
+            Vector3 testedPos = mySettings.transform.worldToLocalMatrix.MultiplyPoint3x4(transform.position);
+            if (!savedPos.AlmostEqual(testedPos))
+            {
+                //we dont have to curve vertices if we only moved the object vertically in a cylinder.
+                if (mySettings.Shape != CurvedUISettings.CurvedUIShape.CYLINDER || Mathf.Pow(testedPos.x - savedPos.x, 2) > 0.00001 || Mathf.Pow(testedPos.z - savedPos.z, 2) > 0.00001)
+                {
+                    //Debug.Log("pos changed");
+                    return true;
+                }
             }
 
             return false;

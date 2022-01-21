@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.Sprites;
 using SoftMasking.Extensions;
 
 namespace SoftMasking {
@@ -27,7 +28,7 @@ namespace SoftMasking {
     [DisallowMultipleComponent]
     [AddComponentMenu("UI/Soft Mask", 14)]
     [RequireComponent(typeof(RectTransform))]
-    [HelpURL("https://docs.google.com/document/d/1XhJFNFHNyKXwWsErLkd1FBw0YgOCeo4qkjrMW9_H-hc")]
+    [HelpURL("https://docs.google.com/document/d/1xsRItl0KqmB2jGwnB2xSktwSRrXrYEwQNWIErLLjG6Q")]
     public class SoftMask : UIBehaviour, ISoftMask, ICanvasRaycastFilter {
         //
         // How it works:
@@ -39,43 +40,45 @@ namespace SoftMasking {
         // inspector is left untouched.
         //
         // Management of SoftMaskables is fully automated. SoftMaskables are kept on the child
-        // objects while any SoftMask parent present. When something changes and SoftMask parent
+        // objects while any SoftMask parent present. When something changes and the parent
         // no longer exists, SoftMaskable is destroyed automatically. So, a user of SoftMask
         // doesn't have to worry about any component changes in the hierarchy.
         //
         // The replacement shader samples the mask texture and multiply the resulted color 
         // accordingly. SoftMask has the predefined replacement for Unity's default UI shader 
-        // (and its ETC1-version in Unity 5.4+). So, when SoftMask 'sees' a material that uses a
+        // (and its ETC1-version). So, when SoftMask 'sees' a material that uses a
         // known shader, it overrides shader by the predefined one. If SoftMask encounters a
         // material with an unknown shader, it can't do anything reasonable (because it doesn't know
         // what that shader should do). In such a case, SoftMask will not work and a warning will
 		// be displayed in Console. If you want SoftMask to work with a custom shader, you can
 		// manually add support to this shader. For reference how to do it, see
-		// CustomWithSoftMask.shader from included samples.
+		// CustomWithSoftMask.shader from the included samples.
         //
         // All replacements are cached in SoftMask instances. By default Unity draws UI with a
-        // very small amount of material instances (they are spawned one per masking/clipping layer),
-        // so, SoftMask creates a relatively small amount of overrides.
+        // very small number of material instances (they are spawned one per masking/clipping layer),
+        // so, SoftMask creates a relatively small number of overrides.
         //
 
-        [SerializeField] Shader _defaultShader = null;
-        [SerializeField] Shader _defaultETC1Shader = null;
         [SerializeField] MaskSource _source = MaskSource.Graphic;
         [SerializeField] RectTransform _separateMask = null;
         [SerializeField] Sprite _sprite = null;
         [SerializeField] BorderMode _spriteBorderMode = BorderMode.Simple;
-        [SerializeField] Texture2D _texture = null;
+        [SerializeField] float _spritePixelsPerUnitMultiplier = 1f;
+        [SerializeField] Texture _texture = null;
         [SerializeField] Rect _textureUVRect = DefaultUVRect;
         [SerializeField] Color _channelWeights = MaskChannel.alpha;
-        [SerializeField] float _raycastThreshold = 0.0f;
+        [SerializeField] float _raycastThreshold = 0f;
+        [SerializeField] bool _invertMask = false;
+        [SerializeField] bool _invertOutsides = false;
 
-        MaterialReplacements _materials;
+        readonly MaterialReplacements _materials;
         MaterialParameters _parameters;
-        Sprite _lastUsedSprite;
+        WarningReporter _warningReporter;
         Rect _lastMaskRect;
         bool _maskingWasEnabled;
         bool _destroyed;
         bool _dirty;
+        readonly Queue<Transform> _transformsToSpawnMaskablesIn = new Queue<Transform>();
 
         // Cached components
         RectTransform _maskTransform;
@@ -86,8 +89,9 @@ namespace SoftMasking {
             var materialReplacer = 
                 new MaterialReplacerChain(
                     MaterialReplacer.globalReplacers,
-                    new MaterialReplacerImpl(this));
+                    new MaterialReplacerImpl());
             _materials = new MaterialReplacements(materialReplacer, m => _parameters.Apply(m));
+            _warningReporter = new WarningReporter(this);
         }
 
         /// <summary>
@@ -111,11 +115,11 @@ namespace SoftMasking {
             /// </summary>
             Sprite,
             /// <summary>
-            /// The mask image should be taken from an explicitly specified Texture2D. When this
-            /// mode is used, textureUVRect can also be set to determine what part of the texture
-            /// should be used. If the texture isn't set, a solid rectangle of the RectTransform
-            /// dimensions will be used. This mode is analogous to using a RawImage with according 
-            /// texture and uvRect set.
+            /// The mask image should be taken from an explicitly specified Texture2D or
+            /// RenderTexture. When this mode is used, textureUVRect can also be set to determine
+            /// which part of the texture should be used. If the texture isn't set, a solid rectangle
+            /// of the RectTransform dimensions will be used. This mode is analogous to using a
+            /// RawImage with according texture and uvRect set.
             /// </summary>
             Texture
         }
@@ -143,7 +147,8 @@ namespace SoftMasking {
         }
         
         /// <summary>
-        /// Errors encountered during SoftMask diagnostics. Mostly intended to use in Unity Editor.
+        /// Errors encountered during SoftMask diagnostics. Used by SoftMaskEditor to display
+        /// hints relevant to the current state.
         /// </summary>
         [Flags]
         [Serializable]
@@ -154,27 +159,8 @@ namespace SoftMasking {
             TightPackedSprite       = 1 << 2,
             AlphaSplitSprite        = 1 << 3,
             UnsupportedImageType    = 1 << 4,
-            UnreadableTexture       = 1 << 5
-        }
-
-        /// <summary>
-        /// Specifies a Shader that should be used as a replacement of the Unity's default UI
-        /// shader. If you add SoftMask in play-time by AddComponent(), you should set 
-        /// this property manually.
-        /// </summary>
-        public Shader defaultShader {
-            get { return _defaultShader; }
-            set { SetShader(ref _defaultShader, value); }
-        }
-
-        /// <summary>
-        /// Specifies a Shader that should be used as a replacement of the Unity's default UI
-        /// shader with ETC1 (alpha-split) support. If you use ETC1 textures in UI and
-        /// add SoftMask in play-time by AddComponent(), you should set this property manually.
-        /// </summary>
-        public Shader defaultETC1Shader {
-            get { return _defaultETC1Shader; }
-            set { SetShader(ref _defaultETC1Shader, value, warnIfNotSet: false); }
+            UnreadableTexture       = 1 << 5,
+            UnreadableRenderTexture = 1 << 6
         }
 
         /// <summary>
@@ -186,9 +172,9 @@ namespace SoftMasking {
         }
 
         /// <summary>
-        /// Specifies a RectTransform that should be used as a mask. It allows to separate 
-        /// a mask from a masking hierarchy root, which simplifies creation of moving or 
-        /// sliding masks. When null, the RectTransform of the current object will be used.
+        /// Specifies a RectTransform that defines the bounds of the mask. Use of a separate
+        /// RectTransform allows moving or resizing the mask bounds without affecting children.
+        /// When null, the RectTransform of this GameObject is used.
         /// Default value is null.
         /// </summary>
         public RectTransform separateMask {
@@ -205,33 +191,63 @@ namespace SoftMasking {
 
         /// <summary>
         /// Specifies a Sprite that should be used as the mask image. This property takes
-        /// effect only when the source is MaskSource.Sprite.
+        /// effect only when source is MaskSource.Sprite.
         /// </summary>
+        /// <seealso cref="source"/>
         public Sprite sprite {
             get { return _sprite; }
             set { if (_sprite != value) Set(ref _sprite, value); }
         }
 
         /// <summary>
-        /// Specifies the draw mode of sprite borders. This property takes effect only when the
+        /// Specifies how to draw sprite borders. This property takes effect only when
         /// source is MaskSource.Sprite.
         /// </summary>
+        /// <seealso cref="source"/>
+        /// <seealso cref="sprite"/>
         public BorderMode spriteBorderMode {
             get { return _spriteBorderMode; }
             set { if (_spriteBorderMode != value) Set(ref _spriteBorderMode, value); }
         }
 
         /// <summary>
-        /// Specifies a Texture2D that should be used as the mask image. This property takes
-        /// effect only when the source is MaskSource.Texture.
+        /// A multiplier that is applied to the pixelsPerUnit property of the selected sprite.
+        /// Default value is 1. This property takes effect only when source is MaskSource.Sprite.
         /// </summary>
+        /// <seealso cref="source"/>
+        /// <seealso cref="sprite"/>
+        public float spritePixelsPerUnitMultiplier {
+            get { return _spritePixelsPerUnitMultiplier; }
+            set { 
+                if (_spritePixelsPerUnitMultiplier != value)
+                    Set(ref _spritePixelsPerUnitMultiplier, ClampPixelsPerUnitMultiplier(value));
+            }
+        }
+
+        /// <summary>
+        /// Specifies a Texture2D that should be used as the mask image. This property takes
+        /// effect only when the source is MaskSource.Texture. This and <see cref="renderTexture"/>
+        /// properties are mutually exclusive.
+        /// </summary>
+        /// <seealso cref="renderTexture"/>
         public Texture2D texture {
-            get { return _texture; }
+            get { return _texture as Texture2D; }
+            set { if (_texture != value) Set(ref _texture, value); }
+        }
+        
+        /// <summary>
+        /// Specifies a RenderTexture that should be used as the mask image. This property takes
+        /// effect only when the source is MaskSource.Texture. This and <see cref="texture"/>
+        /// properties are mutually exclusive.
+        /// </summary>
+        /// <seealso cref="texture"/>
+        public RenderTexture renderTexture {
+            get { return _texture as RenderTexture; }
             set { if (_texture != value) Set(ref _texture, value); }
         }
 
         /// <summary>
-        /// Specifies an UV rectangle defining the image part, that should be used as 
+        /// Specifies a normalized UV-space rectangle defining the image part that should be used as
         /// the mask image. This property takes effect only when the source is MaskSource.Texture.
         /// A value is set in normalized coordinates. The default value is (0, 0, 1, 1), which means
         /// that the whole texture is used.
@@ -266,12 +282,39 @@ namespace SoftMasking {
         /// channelWeights applied.
         /// The default value is 0, which means that any pixel belonging to RectTransform is
         /// considered in input events. If you specify the value greater than 0, the mask's 
-        /// texture should be readable.
+        /// texture should be readable and it should be not a RenderTexture.
         /// Accepts values in range [0..1].
         /// </summary>
         public float raycastThreshold {
             get { return _raycastThreshold; }
             set { _raycastThreshold = value; }
+        }
+
+        /// <summary>
+        /// If set, mask values inside the mask rectangle will be inverted. In this case mask's
+        /// zero value (taking <see cref="channelWeights"/> into account) will be treated as one
+        /// and vice versa. The mask rectangle is the RectTransform of the GameObject this
+        /// component is attached to or <see cref="separateMask"/> if it's not null.
+        /// The default value is false.
+        /// </summary>
+        /// <seealso cref="invertOutsides"/>
+        public bool invertMask {
+            get { return _invertMask; }
+            set { if (_invertMask != value) Set(ref _invertMask, value); }
+        }
+        
+        /// <summary>
+        /// If set, mask values outside the mask rectangle will be inverted. By default, everything
+        /// outside the mask rectangle has zero mask value. When this property is set, the mask
+        /// outsides will have value one, which means that everything outside the mask will be
+        /// visible. The mask rectangle is the RectTransform of the GameObject this component
+        /// is attached to or <see cref="separateMask"/> if it's not null.
+        /// The default value is false.
+        /// </summary>
+        /// <seealso cref="invertMask"/>
+        public bool invertOutsides {
+            get { return _invertOutsides; }
+            set { if (_invertOutsides != value) Set(ref _invertOutsides, value); }
         }
 
         /// <summary>
@@ -299,29 +342,23 @@ namespace SoftMasking {
         public bool IsRaycastLocationValid(Vector2 sp, Camera cam) {
             Vector2 localPos;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(maskTransform, sp, cam, out localPos)) return false;
-            if (!Mathr.Inside(localPos, LocalMaskRect(Vector4.zero))) return false;
+            if (!Mathr.Inside(localPos, LocalMaskRect(Vector4.zero))) return _invertOutsides;
             if (!_parameters.texture) return true;
             if (!isUsingRaycastFiltering) return true;
             float mask;
-            if (!_parameters.SampleMask(localPos, out mask)) {
-                Debug.LogErrorFormat(this,
-                    "Raycast Threshold greater than 0 can't be used on Soft Mask with texture '{0}' because "
-                    + "it's not readable. You can make the texture readable in the Texture Import Settings.",
-                    _parameters.activeTexture.name);
+            var sampleResult = _parameters.SampleMask(localPos, out mask);
+            _warningReporter.TextureRead(_parameters.texture, sampleResult);
+            if (sampleResult != MaterialParameters.SampleMaskResult.Success)
                 return true;
-            }   
+            if (_invertMask)
+                mask = 1 - mask;
             return mask >= _raycastThreshold;
-        }
-
-        protected override void Start() {
-            base.Start();
-            WarnIfDefaultShaderIsNotSet();
         }
 
         protected override void OnEnable() {
             base.OnEnable();
             SubscribeOnWillRenderCanvases();
-            SpawnMaskablesInChildren(transform);
+            MarkTransformForMaskablesSpawn(transform);
             FindGraphic();
             if (isMaskingEnabled)
                 UpdateMaskParameters();
@@ -350,7 +387,8 @@ namespace SoftMasking {
             var maskingEnabled = isMaskingEnabled;
             if (maskingEnabled) {
                 if (_maskingWasEnabled != maskingEnabled)
-                    SpawnMaskablesInChildren(transform);
+                    MarkTransformForMaskablesSpawn(transform);
+                SpawnMaskables();
                 var prevGraphic = _graphic;
                 FindGraphic();
                 if (_lastMaskRect != maskTransform.rect
@@ -373,11 +411,16 @@ namespace SoftMasking {
     #if UNITY_EDITOR
         protected override void OnValidate() {
             base.OnValidate();
+            _spritePixelsPerUnitMultiplier = ClampPixelsPerUnitMultiplier(_spritePixelsPerUnitMultiplier);
             _dirty = true;
             _maskTransform = null;
             _graphic = null;
         }
     #endif
+
+        static float ClampPixelsPerUnitMultiplier(float value) {
+            return Mathf.Max(value, 0.01f);
+        }
 
         protected override void OnTransformParentChanged() {
             base.OnTransformParentChanged();
@@ -393,9 +436,30 @@ namespace SoftMasking {
         }
 
         void OnTransformChildrenChanged() {
-            SpawnMaskablesInChildren(transform);
+            MarkTransformForMaskablesSpawn(transform);
         }
-         
+
+        void MarkTransformForMaskablesSpawn(Transform transform) {
+            // We defer SoftMaskables spawning to LateUpdate. It lets us work around
+            // the problem that MaskableGraphic doesn't respect IMaterialModifiers
+            // which stay before above it in the component stack in case of creation
+            // a new object. Particularly, it "solves" an issue with multiline
+            // TextMesh Pro text: TMPro creates SubMesh objects and then adds a
+            // Graphic component in a separate step. Deferring SoftMaskable spawning
+            // to LateUpdate allows us to be sure that SoftMaskable will be spawned
+            // after the Graphic is spawned.
+            if (!_transformsToSpawnMaskablesIn.Contains(transform))
+                _transformsToSpawnMaskablesIn.Enqueue(transform);
+        }
+
+        void SpawnMaskables() {
+            while (_transformsToSpawnMaskablesIn.Count > 0) {
+                var transformForSpawn = _transformsToSpawnMaskablesIn.Dequeue();
+                if (transformForSpawn)
+                    SpawnMaskablesInChildren(transformForSpawn);
+            }
+        }
+
         void SubscribeOnWillRenderCanvases() {
             // To get called when layout and graphics update is finished we should
             // subscribe after CanvasUpdateRegistry. CanvasUpdateRegistry subscribes
@@ -415,7 +479,7 @@ namespace SoftMasking {
             if (isMaskingEnabled)
                 UpdateMaskParameters();
         }
-        
+
         static T Touch<T>(T obj) { return obj; }
 
         static readonly Rect DefaultUVRect = new Rect(0, 0, 1, 1);
@@ -447,11 +511,11 @@ namespace SoftMasking {
         }
 
         void ISoftMask.UpdateTransformChildren(Transform transform) {
-            SpawnMaskablesInChildren(transform);
+            MarkTransformForMaskablesSpawn(transform);
         }
 
         void OnGraphicDirty() {
-            if (isBasedOnGraphic)
+            if (isBasedOnGraphic) // TODO is this check neccessary?
                 _dirty = true;
         }
 
@@ -490,8 +554,13 @@ namespace SoftMasking {
                 for (int i = 0; i < root.childCount; ++i) {
                     var child = root.GetChild(i);
                     child.GetComponents(s_maskables);
-                    Assert.IsTrue(s_maskables.Count <= 1);
-                    if (s_maskables.Count == 0)
+                    var hasMaskable = false;
+                    for (int j = 0; j < s_maskables.Count; ++j)
+                        if (!s_maskables[j].isDestroyed) {
+                            hasMaskable = true;
+                            break;
+                        }
+                    if (!hasMaskable)
                         child.gameObject.AddComponent<SoftMaskable>();
                 }
         }
@@ -501,16 +570,16 @@ namespace SoftMasking {
         }
 
         void NotifyChildrenThatMaskMightChanged() {
-            ForEachChildMaskable(x => x.MaskMightChanged());
+            ForEachChildMaskable(x => x.MaskMightChanged(), includeInactive: true);
         }
 
-        void ForEachChildMaskable(Action<SoftMaskable> f) {
-            transform.GetComponentsInChildren(s_maskables);
+        void ForEachChildMaskable(Action<SoftMaskable> action, bool includeInactive = false) {
+            transform.GetComponentsInChildren(includeInactive, s_maskables);
             using (new ClearListAtExit<SoftMaskable>(s_maskables))
                 for (int i = 0; i < s_maskables.Count; ++i) {
                     var maskable = s_maskables[i];
                     if (maskable && maskable.gameObject != gameObject)
-                        f(maskable);
+                        action(maskable);
                 }
         }
 
@@ -522,100 +591,113 @@ namespace SoftMasking {
             public Image image;
             public Sprite sprite;
             public BorderMode spriteBorderMode;
-            public Texture2D texture;
+            public float spritePixelsPerUnit;
+            public Texture texture;
             public Rect textureUVRect;
         }
+
+        const float DefaultPixelsPerUnit = 100f;
 
         SourceParameters DeduceSourceParameters() {
             var result = new SourceParameters();
             switch (_source) {
                 case MaskSource.Graphic:
                     if (_graphic is Image) {
-                        result.image = (Image)_graphic;
-                        result.sprite = result.image.sprite;
-                        result.spriteBorderMode = ToBorderMode(result.image.type);
-                        result.texture = result.sprite ? result.sprite.texture : null;
+                        var image = (Image)_graphic;
+                        var sprite = image.sprite;
+                        result.image = image;
+                        result.sprite = sprite;
+                        result.spriteBorderMode = ImageTypeToBorderMode(image.type);
+                        if (sprite) {
+                        #if UNITY_2019_2_OR_NEWER
+                            result.spritePixelsPerUnit = sprite.pixelsPerUnit * image.pixelsPerUnitMultiplier;
+                        #else
+                            result.spritePixelsPerUnit = sprite.pixelsPerUnit;
+                        #endif
+                            result.texture = sprite.texture;
+                        } else
+                            result.spritePixelsPerUnit = DefaultPixelsPerUnit;
                     } else if (_graphic is RawImage) {
                         var rawImage = (RawImage)_graphic;
-                        result.texture = rawImage.texture as Texture2D;
+                        result.texture = rawImage.texture;
                         result.textureUVRect = rawImage.uvRect;
                     }
                     break;
                 case MaskSource.Sprite:
                     result.sprite = _sprite;
                     result.spriteBorderMode = _spriteBorderMode;
-                    result.texture = result.sprite ? result.sprite.texture : null; // TODO make SourceParameters immutable and expose specific ctors?
+                    if (_sprite) {
+                        result.spritePixelsPerUnit = _sprite.pixelsPerUnit * _spritePixelsPerUnitMultiplier;
+                        result.texture = _sprite.texture;
+                    } else
+                        result.spritePixelsPerUnit = DefaultPixelsPerUnit;
                     break;
                 case MaskSource.Texture:
                     result.texture = _texture;
                     result.textureUVRect = _textureUVRect;
                     break;
                 default:
-                    Debug.LogErrorFormat(this, "Unknown MaskSource: {0}", _source);
+                    Debug.LogAssertionFormat(this, "Unknown MaskSource: {0}", _source);
                     break;
             }
             return result;
         }
 
-        BorderMode ToBorderMode(Image.Type imageType) {
-            switch (imageType) {
+        public static BorderMode ImageTypeToBorderMode(Image.Type type) {
+            switch (type) {
                 case Image.Type.Simple: return BorderMode.Simple;
                 case Image.Type.Sliced: return BorderMode.Sliced;
                 case Image.Type.Tiled: return BorderMode.Tiled;
                 default:
-                    Debug.LogErrorFormat(
-                        this,
-                        "SoftMask doesn't support image type {0}. Image type Simple will be used.",
-                        imageType);
                     return BorderMode.Simple;
             }
+        }
+        
+        public static bool IsImageTypeSupported(Image.Type type) {
+            return type == Image.Type.Simple
+                || type == Image.Type.Sliced
+                || type == Image.Type.Tiled;
         }
 
         void CalculateMaskParameters() {
             var sourceParams = DeduceSourceParameters();
-            if (sourceParams.sprite)
-                CalculateSpriteBased(sourceParams.sprite, sourceParams.spriteBorderMode);
-            else if (sourceParams.texture)
+            _warningReporter.ImageUsed(sourceParams.image);
+            var spriteErrors = Diagnostics.CheckSprite(sourceParams.sprite);
+            _warningReporter.SpriteUsed(sourceParams.sprite, spriteErrors);
+            if (sourceParams.sprite) {
+                if (spriteErrors == Errors.NoError)
+                    CalculateSpriteBased(sourceParams.sprite, sourceParams.spriteBorderMode, sourceParams.spritePixelsPerUnit);
+                else
+                    CalculateSolidFill();
+            } else if (sourceParams.texture)
                 CalculateTextureBased(sourceParams.texture, sourceParams.textureUVRect);
             else
                 CalculateSolidFill();
         }
 
-        void CalculateSpriteBased(Sprite sprite, BorderMode borderMode) {
-            var lastSprite = _lastUsedSprite;
-            _lastUsedSprite = sprite;
-            var spriteErrors = Diagnostics.CheckSprite(sprite);
-            if (spriteErrors != Errors.NoError) {
-                if (lastSprite != sprite)
-                    WarnSpriteErrors(spriteErrors);
-                CalculateSolidFill();
-                return;
-            }
-            if (!sprite) {
-                CalculateSolidFill();
-                return;
-            }
+        void CalculateSpriteBased(Sprite sprite, BorderMode borderMode, float spritePixelsPerUnit) {
             FillCommonParameters();
-            var spriteRect = Mathr.Move(Mathr.ToVector(sprite.rect), sprite.textureRect.position - sprite.rect.position - sprite.textureRectOffset);
-            var textureRect = Mathr.ToVector(sprite.textureRect);
-            var textureBorder = Mathr.BorderOf(spriteRect, textureRect);
-            var textureSize = new Vector2(sprite.texture.width, sprite.texture.height);
+            var inner = DataUtility.GetInnerUV(sprite);
+            var outer = DataUtility.GetOuterUV(sprite);
+            var padding = DataUtility.GetPadding(sprite);
             var fullMaskRect = LocalMaskRect(Vector4.zero);
-            _parameters.maskRectUV = Mathr.Div(textureRect, textureSize);
+            _parameters.maskRectUV = outer;
             if (borderMode == BorderMode.Simple) {
-                var textureRectInFullRect = Mathr.Div(textureBorder, Mathr.Size(spriteRect));
-                _parameters.maskRect = Mathr.ApplyBorder(fullMaskRect, Mathr.Mul(textureRectInFullRect, Mathr.Size(fullMaskRect)));
+                if (ShouldPreserveAspect())
+                    fullMaskRect = PreserveSpriteAspectRatio(fullMaskRect, sprite.rect.size);
+                var normalizedPadding = Mathr.Div(padding, sprite.rect.size);
+                _parameters.maskRect = Mathr.ApplyBorder(fullMaskRect, Mathr.Mul(normalizedPadding, Mathr.Size(fullMaskRect)));
             } else {
-                _parameters.maskRect = Mathr.ApplyBorder(fullMaskRect, textureBorder * GraphicToCanvasScale(sprite));
-                var fullMaskRectUV = Mathr.Div(spriteRect, textureSize);
-                var adjustedBorder = AdjustBorders(sprite.border * GraphicToCanvasScale(sprite), fullMaskRect);
+                var spriteToCanvasScale = SpriteToCanvasScale(spritePixelsPerUnit);
+                _parameters.maskRect = Mathr.ApplyBorder(fullMaskRect, padding * spriteToCanvasScale);
+                var adjustedBorder = AdjustBorders(sprite.border * spriteToCanvasScale, fullMaskRect);
                 _parameters.maskBorder = LocalMaskRect(adjustedBorder);
-                _parameters.maskBorderUV = Mathr.ApplyBorder(fullMaskRectUV, Mathr.Div(sprite.border, textureSize));
+                _parameters.maskBorderUV = inner;
             }
             _parameters.texture = sprite.texture;
             _parameters.borderMode = borderMode;
             if (borderMode == BorderMode.Tiled)
-                _parameters.tileRepeat = MaskRepeat(sprite, _parameters.maskBorder);
+                _parameters.tileRepeat = MaskRepeat(sprite, spritePixelsPerUnit, _parameters.maskBorder);
         }
 
         static Vector4 AdjustBorders(Vector4 border, Vector4 rect) {
@@ -635,7 +717,28 @@ namespace SoftMasking {
             return border;
         }
 
-        void CalculateTextureBased(Texture2D texture, Rect uvRect) {
+        bool ShouldPreserveAspect() {
+            if (isBasedOnGraphic) {
+                var image = _graphic as Image;
+                Assert.IsNotNull(image);
+                return image.preserveAspect;
+            }
+            return false;
+        }
+        
+        Vector4 PreserveSpriteAspectRatio(Vector4 rect, Vector2 spriteSize) {
+            var spriteRatio = spriteSize.x / spriteSize.y;
+            var rectRatio = (rect.z - rect.x) / (rect.w - rect.y);
+            if (spriteRatio > rectRatio) {
+                var scale = rectRatio / spriteRatio;
+                return new Vector4(rect.x, rect.y * scale, rect.z, rect.w * scale);
+            } else {
+                var scale = spriteRatio / rectRatio;
+                return new Vector4(rect.x * scale, rect.y, rect.z * scale, rect.w);
+            }
+        }
+
+        void CalculateTextureBased(Texture texture, Rect uvRect) {
             FillCommonParameters();
             _parameters.maskRect = LocalMaskRect(Vector4.zero);
             _parameters.maskRectUV = Mathr.ToVector(uvRect);
@@ -650,12 +753,13 @@ namespace SoftMasking {
         void FillCommonParameters() {
             _parameters.worldToMask = WorldToMask();
             _parameters.maskChannelWeights = _channelWeights;
+            _parameters.invertMask = _invertMask;
+            _parameters.invertOutsides = _invertOutsides;
         }
 
-        float GraphicToCanvasScale(Sprite sprite) {
-            var canvasPPU = canvas ? canvas.referencePixelsPerUnit : 100;
-            var maskPPU = sprite ? sprite.pixelsPerUnit : 100;
-            return canvasPPU / maskPPU;
+        float SpriteToCanvasScale(float spritePixelsPerUnit) {
+            var canvasPixelsPerUnit = canvas ? canvas.referencePixelsPerUnit : 100;
+            return canvasPixelsPerUnit / spritePixelsPerUnit;
         }
 
         Matrix4x4 WorldToMask() {
@@ -666,33 +770,20 @@ namespace SoftMasking {
             return Mathr.ApplyBorder(Mathr.ToVector(maskTransform.rect), border);
         }
 
-        Vector2 MaskRepeat(Sprite sprite, Vector4 centralPart) {
-            var textureCenter = Mathr.ApplyBorder(Mathr.ToVector(sprite.textureRect), sprite.border);
-            return Mathr.Div(Mathr.Size(centralPart) * GraphicToCanvasScale(sprite), Mathr.Size(textureCenter));
+        Vector2 MaskRepeat(Sprite sprite, float spritePixelsPerUnit, Vector4 centralPart) {
+            var textureCenter = Mathr.ApplyBorder(Mathr.ToVector(sprite.rect), sprite.border);
+            return Mathr.Div(Mathr.Size(centralPart) * SpriteToCanvasScale(spritePixelsPerUnit), Mathr.Size(textureCenter));
         }
 
-        void WarnIfDefaultShaderIsNotSet() {
-            if (!_defaultShader)
-                Debug.LogWarning("SoftMask may not work because its defaultShader is not set", this);
-        }
-
-        void WarnSpriteErrors(Errors errors) {
-            if ((errors & Errors.TightPackedSprite) != 0)
-                Debug.LogError("SoftMask doesn't support tight packed sprites", this);
-            if ((errors & Errors.AlphaSplitSprite) != 0)
-                Debug.LogError("SoftMask doesn't support sprites with an alpha split texture", this);
-        }
 
         void Set<T>(ref T field, T value) {
             field = value;
             _dirty = true;
         }
 
-        void SetShader(ref Shader field, Shader value, bool warnIfNotSet = true) {
+        void SetShader(ref Shader field, Shader value) {
             if (field != value) {
                 field = value;
-                if (warnIfNotSet)
-                    WarnIfDefaultShaderIsNotSet();
                 DestroyMaterials();
                 InvalidateChildren();
             }
@@ -702,26 +793,37 @@ namespace SoftMasking {
         static readonly List<SoftMaskable> s_maskables = new List<SoftMaskable>();
 
         class MaterialReplacerImpl : IMaterialReplacer {
-            readonly SoftMask _owner;
-
-            public MaterialReplacerImpl(SoftMask owner) {
-                // Pass whole owner instead of just shaders because they can be changed dynamically.
-                _owner = owner;
-            }
-
             public int order { get { return 0; } }
 
             public Material Replace(Material original) {
                 if (original == null || original.HasDefaultUIShader())
-                    return Replace(original, _owner._defaultShader);
-            #if UNITY_5_4_OR_NEWER
+                    return Replace(original, Resources.Load<Shader>(DefaultUIShaderReplacement));
                 else if (original.HasDefaultETC1UIShader())
-                    return Replace(original, _owner._defaultETC1Shader);
-            #endif
+                    return Replace(original, Resources.Load<Shader>(DefaultUIETC1ShaderReplacement));
                 else if (original.SupportsSoftMask())
                     return new Material(original);
                 else
                     return null;
+            }
+
+            static string DefaultUIETC1ShaderReplacement {
+                get {
+                #if UNITY_2020_1_OR_NEWER
+                    return "SoftMaskETC1PremultipliedAlpha";
+                #else
+                    return "SoftMaskETC1";
+                #endif
+                }
+            }
+
+            static string DefaultUIShaderReplacement {
+                get {
+                #if UNITY_2020_1_OR_NEWER
+                    return "SoftMaskPremultipliedAlpha";
+                #else
+                    return "SoftMask";
+                #endif
+                }
             }
 
             static Material Replace(Material original, Shader defaultReplacementShader) {
@@ -734,19 +836,13 @@ namespace SoftMasking {
             }
         }
 
-        // Various operations on a Rect represented as Vector4. 
-        // In Vector4 Rect is stored as (xMin, yMin, xMax, yMax).
+        // Various operations on a Rect represented as Vector4 (xMin, yMin, xMax, yMax).
         static class Mathr {
             public static Vector4 ToVector(Rect r) { return new Vector4(r.xMin, r.yMin, r.xMax, r.yMax); }
             public static Vector4 Div(Vector4 v, Vector2 s) { return new Vector4(v.x / s.x, v.y / s.y, v.z / s.x, v.w / s.y); }
             public static Vector2 Div(Vector2 v, Vector2 s) { return new Vector2(v.x / s.x, v.y / s.y); }
             public static Vector4 Mul(Vector4 v, Vector2 s) { return new Vector4(v.x * s.x, v.y * s.y, v.z * s.x, v.w * s.y); }
             public static Vector2 Size(Vector4 r) { return new Vector2(r.z - r.x, r.w - r.y); }
-            public static Vector4 Move(Vector4 v, Vector2 o) { return new Vector4(v.x + o.x, v.y + o.y, v.z + o.x, v.w + o.y); }
-
-            public static Vector4 BorderOf(Vector4 outer, Vector4 inner) {
-                return new Vector4(inner.x - outer.x, inner.y - outer.y, outer.z - inner.z, outer.w - inner.w);
-            }
 
             public static Vector4 ApplyBorder(Vector4 v, Vector4 b) {
                 return new Vector4(v.x + b.x, v.y + b.y, v.z - b.z, v.w - b.w);
@@ -774,19 +870,26 @@ namespace SoftMasking {
             public Vector2 tileRepeat;
             public Color maskChannelWeights;
             public Matrix4x4 worldToMask;
-            public Texture2D texture;
+            public Texture texture;
             public BorderMode borderMode;
+            public bool invertMask;
+            public bool invertOutsides;
 
-            public Texture2D activeTexture { get { return texture ? texture : Texture2D.whiteTexture; } }
+            public Texture activeTexture { get { return texture ? texture : Texture2D.whiteTexture; } }
 
-            public bool SampleMask(Vector2 localPos, out float mask) {
+            public enum SampleMaskResult { Success, NonReadable, NonTexture2D }
+
+            public SampleMaskResult SampleMask(Vector2 localPos, out float mask) {
+                mask = 0;
+                var texture2D = texture as Texture2D;
+                if (!texture2D)
+                    return SampleMaskResult.NonTexture2D;
                 var uv = XY2UV(localPos);
                 try {
-                    mask = MaskValue(texture.GetPixelBilinear(uv.x, uv.y));
-                    return true;
+                    mask = MaskValue(texture2D.GetPixelBilinear(uv.x, uv.y));
+                    return SampleMaskResult.Success;
                 } catch (UnityException) {
-                    mask = 0;
-                    return false;
+                    return SampleMaskResult.NonReadable;
                 }
             }
 
@@ -796,6 +899,8 @@ namespace SoftMasking {
                 mat.SetVector(Ids.SoftMask_UVRect, maskRectUV);
                 mat.SetColor(Ids.SoftMask_ChannelWeights, maskChannelWeights);
                 mat.SetMatrix(Ids.SoftMask_WorldToMask, worldToMask);
+                mat.SetFloat(Ids.SoftMask_InvertMask, invertMask ? 1 : 0);
+                mat.SetFloat(Ids.SoftMask_InvertOutsides, invertOutsides ? 1 : 0);
                 mat.EnableKeyword("SOFTMASK_SIMPLE", borderMode == BorderMode.Simple);
                 mat.EnableKeyword("SOFTMASK_SLICED", borderMode == BorderMode.Sliced);
                 mat.EnableKeyword("SOFTMASK_TILED", borderMode == BorderMode.Tiled);
@@ -817,7 +922,7 @@ namespace SoftMasking {
                     case BorderMode.Sliced: return MapBorder(localPos, repeat: false);
                     case BorderMode.Tiled: return MapBorder(localPos, repeat: true);
                     default:
-                        Debug.LogError("Unknown BorderMode");
+                        Debug.LogAssertion("Unknown BorderMode");
                         return MapSimple(localPos);
                 }
             }
@@ -871,6 +976,8 @@ namespace SoftMasking {
                 public static readonly int SoftMask_BorderRect = Shader.PropertyToID("_SoftMask_BorderRect");
                 public static readonly int SoftMask_UVBorderRect = Shader.PropertyToID("_SoftMask_UVBorderRect");
                 public static readonly int SoftMask_TileRepeat = Shader.PropertyToID("_SoftMask_TileRepeat");
+                public static readonly int SoftMask_InvertMask = Shader.PropertyToID("_SoftMask_InvertMask");
+                public static readonly int SoftMask_InvertOutsides = Shader.PropertyToID("_SoftMask_InvertOutsides");
             }
         }
 
@@ -906,7 +1013,7 @@ namespace SoftMasking {
 
             Image image { get { return _softMask.DeduceSourceParameters().image; } }
             Sprite sprite { get { return _softMask.DeduceSourceParameters().sprite; } }
-            Texture2D texture { get { return _softMask.DeduceSourceParameters().texture; } }
+            Texture texture { get { return _softMask.DeduceSourceParameters().texture; } }
 
             bool ThereAreNestedMasks() {
                 var softMask = _softMask; // for use in lambda
@@ -923,16 +1030,20 @@ namespace SoftMasking {
             Errors CheckImage() {
                 var result = Errors.NoError;
                 if (!_softMask.isBasedOnGraphic) return result;
-                if (image && !IsSupportedImageType(image.type))
+                if (image && !IsImageTypeSupported(image.type))
                     result |= Errors.UnsupportedImageType;
                 return result;
             }
 
             Errors CheckTexture() {
                 var result = Errors.NoError;
-                if (_softMask.isUsingRaycastFiltering && texture)
-                    if (!IsReadable(texture))
+                if (_softMask.isUsingRaycastFiltering && texture) {
+                    var texture2D = texture as Texture2D;
+                    if (!texture2D)
+                        result |= Errors.UnreadableRenderTexture;
+                    else if (!IsReadable(texture2D))
                         result |= Errors.UnreadableTexture;
+                }
                 return result;
             }
 
@@ -959,11 +1070,70 @@ namespace SoftMasking {
                     return false;
                 }
             }
+        }
 
-            static bool IsSupportedImageType(Image.Type type) {
-                return type == Image.Type.Simple
-                    || type == Image.Type.Sliced
-                    || type == Image.Type.Tiled;
+        struct WarningReporter {
+            readonly UnityEngine.Object _owner;
+            Texture _lastReadTexture;
+            Sprite _lastUsedSprite;
+            Sprite _lastUsedImageSprite;
+            Image.Type _lastUsedImageType;
+        
+            public WarningReporter(UnityEngine.Object owner) {
+                _owner = owner;
+                _lastReadTexture = null;
+                _lastUsedSprite = null;
+                _lastUsedImageSprite = null;
+                _lastUsedImageType = Image.Type.Simple;
+            }
+
+            public void TextureRead(Texture texture, MaterialParameters.SampleMaskResult sampleResult) {
+                if (_lastReadTexture == texture)
+                    return;
+                _lastReadTexture = texture;
+                switch (sampleResult) {
+                    case MaterialParameters.SampleMaskResult.NonReadable:
+                        Debug.LogErrorFormat(_owner,
+                            "Raycast Threshold greater than 0 can't be used on Soft Mask with texture '{0}' because "
+                            + "it's not readable. You can make the texture readable in the Texture Import Settings.",
+                            texture.name);
+                        break;
+                    case MaterialParameters.SampleMaskResult.NonTexture2D:
+                        Debug.LogErrorFormat(_owner,
+                            "Raycast Threshold greater than 0 can't be used on Soft Mask with texture '{0}' because "
+                            + "it's not a Texture2D. Raycast Threshold may be used only with regular 2D textures.",
+                            texture.name);
+                        break;
+                }
+            }
+                
+            public void SpriteUsed(Sprite sprite, Errors errors) {
+                if (_lastUsedSprite == sprite)
+                    return;
+                _lastUsedSprite = sprite;
+                if ((errors & Errors.TightPackedSprite) != 0)
+                    Debug.LogError("SoftMask doesn't support tight packed sprites", _owner);
+                if ((errors & Errors.AlphaSplitSprite) != 0)
+                    Debug.LogError("SoftMask doesn't support sprites with an alpha split texture", _owner);
+            }
+
+            public void ImageUsed(Image image) {
+                if (!image) {
+                    _lastUsedImageSprite = null;
+                    _lastUsedImageType = Image.Type.Simple;
+                    return;
+                }
+                if (_lastUsedImageSprite == image.sprite && _lastUsedImageType == image.type)
+                    return;
+                _lastUsedImageSprite = image.sprite;
+                _lastUsedImageType = image.type;
+                if (!image)
+                    return;
+                if (IsImageTypeSupported(image.type))
+                    return;
+                Debug.LogErrorFormat(_owner,
+                    "SoftMask doesn't support image type {0}. Image type Simple will be used.",
+                    image.type);
             }
         }
     }

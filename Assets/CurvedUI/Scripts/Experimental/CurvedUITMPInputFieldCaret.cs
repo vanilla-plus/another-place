@@ -14,6 +14,7 @@ namespace CurvedUI
     /// <summary>
     /// Creates a recttransform caret with image component that can be curved with curvedUI. Hides inputfield's original caret.
     /// </summary>
+    [ExecuteInEditMode]
     public class CurvedUITMPInputFieldCaret : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
 
@@ -32,6 +33,9 @@ namespace CurvedUI
         void Awake()
         {
             myField = this.GetComponent<TMP_InputField>();
+
+            if (myField)
+                CheckAndConvertMask();
         }
 
         void Update()
@@ -172,6 +176,25 @@ namespace CurvedUI
             else return Vector2.zero; // field not focused, return 0,0
         }
 
+
+        #region MASK CONVERTING
+        /// <summary>
+        /// Converts InputField's RectMask2D to a Mask + Image component combination that works better with CurvedUI
+        /// </summary>
+        void CheckAndConvertMask()
+        {
+            foreach(Transform trans in this.transform)
+            {
+                if(trans.GetComponent<RectMask2D>()!= null)
+                {
+                    DestroyImmediate (trans.GetComponent<RectMask2D>());
+
+                    trans.AddComponentIfMissing<Image>();
+                    trans.AddComponentIfMissing<Mask>();
+                }
+            }
+        }
+        #endregion
 
 
         #region SETTERS AND GETTERS

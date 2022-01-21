@@ -6,7 +6,6 @@ using SoftMasking.Extensions;
 
 namespace SoftMasking {
     [ExecuteInEditMode]
-    [DisallowMultipleComponent]
     [AddComponentMenu("")]
     public class SoftMaskable : UIBehaviour, IMaterialModifier {
         ISoftMask _mask;
@@ -22,10 +21,11 @@ namespace SoftMasking {
                 return mask != null 
                     && mask.isAlive 
                     && mask.isMaskingEnabled 
-                    && _affectedByMask;
+                    && _affectedByMask
+                    && isGraphicMaskable;
             }
         }
-
+        
         public ISoftMask mask {
             get { return _mask; }
             private set {
@@ -36,6 +36,10 @@ namespace SoftMasking {
                     Invalidate();
                 }
             }
+        }
+
+        public bool isDestroyed {
+            get { return _destroyed; }
         }
 
         public Material GetModifiedMaterial(Material baseMaterial) {
@@ -60,13 +64,13 @@ namespace SoftMasking {
             return baseMaterial;
         }
         
-        // Called when replacement material might be changed, so, the material should be refreshed.
+        // Called when replacement material might be changed, so the material should be refreshed.
         public void Invalidate() {
             if (graphic)
                 graphic.SetMaterialDirty();
         }
 
-        // Called when an active mask might be changed, so, the mask should be searched again.
+        // Called when an active mask might be changed, so the mask should be searched again.
         public void MaskMightChanged() {
             if (FindMaskOrDie())
                 Invalidate();
@@ -113,7 +117,24 @@ namespace SoftMasking {
                 mask.UpdateTransformChildren(transform);
         }
 
-        Graphic graphic { get { return _graphic ? _graphic : (_graphic = GetComponent<Graphic>()); } }
+        Graphic graphic {
+            get { return _graphic ? _graphic : (_graphic = GetComponent<Graphic>()); }
+        }
+
+        bool isGraphicMaskable {
+            get {
+                if (!graphic)
+                    return false;
+            #if UNITY_2020_1_OR_NEWER
+                var maskableGraphic = graphic as MaskableGraphic;
+                if (!maskableGraphic)
+                    return true;
+                return maskableGraphic.maskable;
+            #else
+                return true;
+            #endif
+            }
+        }
 
         Material replacement {
             get { return _replacement; }
@@ -133,7 +154,7 @@ namespace SoftMasking {
                 ?? NearestMask(transform, out _affectedByMask, enabledOnly: false);
             if (mask == null) {
                 _destroyed = true;
-                DestroyImmediate(this);
+                DestroySelf();
                 return false;
             }
             return true;
@@ -154,6 +175,13 @@ namespace SoftMasking {
                     processedByThisMask = false;
                 current = current.parent;
             }
+        }
+
+        void DestroySelf() {
+            if (Application.isPlaying)
+                Destroy(this);
+            else
+                DestroyImmediate(this);
         }
 
         static List<ISoftMask> s_softMasks = new List<ISoftMask>();

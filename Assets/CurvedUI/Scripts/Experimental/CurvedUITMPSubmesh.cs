@@ -14,22 +14,23 @@ namespace CurvedUI
 #if CURVEDUI_TMP || TMP_PRESENT
 
         //saved references
-        VertexHelper vh;
-        Mesh straightMesh;
-        Mesh curvedMesh;
-        CurvedUIVertexEffect crvdVE;
-        TMP_SubMeshUI TMPsub;
+        private VertexHelper vh;
+        private Mesh straightMesh;
+        private Mesh curvedMesh;
+        private CurvedUIVertexEffect crvdVE;
+        private TMP_SubMeshUI TMPsub;
+        private TextMeshProUGUI TMPtext;
 
         public void UpdateSubmesh(bool tesselate, bool curve)
         {
             //find required components
-            if (TMPsub == null)
-                TMPsub = gameObject.GetComponent<TMP_SubMeshUI>();
+            if (TMPsub == null) TMPsub = gameObject.GetComponent<TMP_SubMeshUI>();
 
             if (TMPsub == null) return;
 
-            if (crvdVE == null)
-                crvdVE = gameObject.AddComponentIfMissing<CurvedUIVertexEffect>();
+            if (TMPtext == null)TMPtext = GetComponentInParent<TextMeshProUGUI>();
+
+            if (crvdVE == null)crvdVE = gameObject.AddComponentIfMissing<CurvedUIVertexEffect>();
 
 
             //perform tesselatio and curving
@@ -57,6 +58,16 @@ namespace CurvedUI
 
             //upload mesh to TMP object's renderer
             TMPsub.canvasRenderer.SetMesh(curvedMesh);
+
+
+            //cleanup for not needed submeshes.
+            if (TMPtext != null && TMPtext.textInfo.materialCount < 2)
+            {
+                //Each submesh uses 1 additional material.
+                //If materialCount is 1, this means Submesh is not needed. Bounce it to toggle cleanup.
+                TMPsub.enabled = false;
+                TMPsub.enabled = true;
+            }
         }
 
 #endif
