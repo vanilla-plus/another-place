@@ -31,7 +31,7 @@ public class Menu : MonoBehaviour
 		
 		_x = 0.0f;
 
-		Tile.OnSelect += TileSelectedHandler;
+		Tile.OnSelectChange += TileSelectedHandler;
 		
 		_rect = (RectTransform)tileParent.transform;
 
@@ -62,7 +62,7 @@ public class Menu : MonoBehaviour
 			await newTile.Populate(e);
 		}
 
-		tiles[0].Select();
+		tiles[0].TrySelect();
 		
 		enabled = true;
 		

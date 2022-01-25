@@ -1,49 +1,53 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 using Vanilla.Easing;
 
 public class Tile_Preview : MonoBehaviour
 {
 
+
+	public Tile tile;
+
+	public RectTransform backgroundRect;
+
+	public Image background;
+
+	public CanvasGroup previewGroup;
+
+	public float hoverZoomScale = 1.1f;
+
+	public float hoverFadeEffect = 0.75f;
+
+
 	void Awake()
 	{
-		var c = GetComponent<CanvasGroup>();
-		
-		GetComponentInParent<Tile>().onHoverNormalFrame += n => c.alpha = n.InOutQuadratic();
+		if (!tile) tile = GetComponentInParent<Tile>();
+
+		tile.onHoverNormalFrame += n =>
+		                           {
+			                           n = n.InOutQuadratic();
+
+			                           // Create a separate limited lerp value just for changing background image color
+
+			                           background.color = Color.Lerp(a: Color.black,
+			                                                         b: Color.white,
+			                                                         t: Mathf.Lerp(a: 1.0f,
+			                                                                       b: hoverFadeEffect,
+			                                                                       t: n));
+
+			                           // Zoom background image scale
+
+			                           var m = Mathf.Lerp(a: 1.0f,
+			                                              b: hoverZoomScale,
+			                                              t: n);
+
+			                           backgroundRect.localScale = m * Vector3.one;
+
+			                           // Fade preview canvas group alpha
+
+			                           previewGroup.alpha = n.InOutQuadratic();
+		                           };
 	}
-	
-//	public bool hovered = false;
-
-//	public float alpha;
-	
-//	private const float fadeInRate = 2.0f;
-	
-//	public CanvasGroup canvasGroup;
-	
-//	public void OnPointerEnter(PointerEventData eventData)
-//	{
-//		Debug.Log("Hover start?");
-//
-//		hovered = true;
-//	}
-
-
-//	public void OnPointerExit(PointerEventData eventData)
-//	{
-//		Debug.Log("Hover end?");
-//
-//		hovered = false;
-//	}
-
-
-//	void Update()
-//	{
-//		alpha = Mathf.Clamp01(alpha + (hovered ? Time.deltaTime * fadeInRate : -Time.deltaTime * fadeInRate));
-//
-//		canvasGroup.alpha = alpha;
-//	}
 
 }

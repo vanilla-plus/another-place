@@ -15,7 +15,11 @@ public class Tile : MonoBehaviour
 {
 
 	public static Tile               Selected;
-	public static Action<Tile, Tile> OnSelect;
+
+	public Action onSelected;
+	public Action onDeselected;
+	
+	public static Action<Tile, Tile> OnSelectChange;
 	
 	public Tile prev;
 	
@@ -87,16 +91,15 @@ public class Tile : MonoBehaviour
 		if (!_rect) _rect     = (RectTransform)transform;
 		if (!_button) _button = GetComponentInChildren<Button>();
 
-		OnSelect += (outgoing,
-		             incoming) =>
-		            {
-			            if (outgoing == this && selected)
-			            {
-				            selected = false;
-				            
-				            DeSelectHandler();
-			            }
-		            };
+		OnSelectChange += OnSelectChangeHandler;
+//		                  {
+//			                  if (outgoing == this && selected)
+//			                  {
+//				                  selected = false;
+
+//				                  DeSelectHandler();
+//			                  }
+//		                  };
 
 		onSelectNormalFrame += n => { };
 	}
@@ -173,25 +176,67 @@ public class Tile : MonoBehaviour
 		Log("HoverEnd done");
 	}
 
-
-	public void Select()
+	public void TrySelect()
 	{
 		if (Selected == this) return;
 
 		var oldSelected = Selected;
-		
+
 		Selected = this;
 
 		selected = true;
 
-		OnSelect?.Invoke(arg1: oldSelected,
+		OnSelectChange?.Invoke(arg1: oldSelected,
 		                 arg2: Selected);
+		
+		onSelected?.Invoke();
+		
+		ExpandSizeHandler();
+		SelectNormalHandler();
+	}
+	
+	private void OnSelectChangeHandler(Tile outgoing,
+	                                         Tile incoming)
+	{
+		if (selected &&
+		    ReferenceEquals(objA: outgoing,
+		                    objB: this))
+		{
+			// Another tile was selected, meaning this one is deselected
+			
+			selected = false;
 
-		SelectHandler();
+			onDeselected?.Invoke();
+
+			ShrinkSizeHandler();
+			DeselectNormalHandler();
+		}
+	}
+
+	private async Task SelectNormalHandler()
+	{
+		while (selected &&
+		       selectNormal < 1.0f)
+		{
+			selectNormal = Mathf.Clamp01(selectNormal + Time.deltaTime * selectNormalRate);
+			
+			await Task.Yield();
+		}
+	}
+	
+	private async Task DeselectNormalHandler()
+	{
+		while (!selected &&
+		       selectNormal > 0.0f)
+		{
+			selectNormal = Mathf.Clamp01(selectNormal - Time.deltaTime * selectNormalRate);
+
+			await Task.Yield();
+		}
 	}
 
 
-	private async Task SelectHandler()
+	private async Task ExpandSizeHandler()
 	{
 		while (selected && Mathf.Abs(_rect.sizeDelta.x - maxWindowSize) > 0.1f)
 		{
@@ -200,40 +245,25 @@ public class Tile : MonoBehaviour
 			                                                  currentVelocity: ref expandVel,
 			                                                  smoothTime: expandDuration),
 			                              y: _rect.sizeDelta.y);
-			
+
 			await Task.Yield();
 		}
-		
-//		while (selected &&
-//		       selectNormal < 1.0f)
-//		{
-//			selectNormal = Mathf.Clamp01(selectNormal + Time.deltaTime * selectNormalRate);
-//			
-//			await Task.Yield();
-//		}
 	}
 
 
-	private async Task DeSelectHandler()
+	private async Task ShrinkSizeHandler()
 	{
-		while (!selected && Mathf.Abs(_rect.sizeDelta.x - minWindowSize) > 0.1f)
+		while (!selected &&
+		       Mathf.Abs(_rect.sizeDelta.x - minWindowSize) > 0.1f)
 		{
 			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
 			                                                  target: minWindowSize,
 			                                                  currentVelocity: ref expandVel,
 			                                                  smoothTime: expandDuration),
 			                              y: _rect.sizeDelta.y);
-			
+
 			await Task.Yield();
 		}
-		
-//		while (!selected &&
-//		       selectNormal > 0.0f)
-//		{
-//			selectNormal = Mathf.Clamp01(selectNormal - Time.deltaTime * selectNormalRate);
-//
-//			await Task.Yield();
-//		}
 	}
 
 
