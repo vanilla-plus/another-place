@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -110,6 +111,8 @@ public static class Place
 	private static bool _CatalogueFetched = false;
 	
 	public static List<Experience> Catalogue = new List<Experience>(16);
+
+	public static Action onCatalogueFetched;
 	
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 	private static async void PreSceneInitialize()
@@ -147,11 +150,13 @@ public static class Place
 
 		LogError("Here are the download requirements for each experience");
 		
-		foreach (var e in Catalogue) Log(e.GetDownloadRequirement);
+//		foreach (var e in Catalogue) Log(e.GetDownloadRequirement);
 
-		Catalogue[1].DownloadContent();
+//		Catalogue[1].DownloadContent();
 		
-		AppManager.Instance.Initialise();
+//		AppManager.Instance.Initialise();
+
+//		Menu.i.Initialize();
 	}
 
 
@@ -270,7 +275,7 @@ public static class Place
 
 		foreach (var e in episodes) Catalogue.Add(new Experience(node: e));
 
-		AppManager.Instance.ExperienceList = Catalogue;
+		onCatalogueFetched?.Invoke();
 		
 		_RemoteConfigFetched = true;
 	}

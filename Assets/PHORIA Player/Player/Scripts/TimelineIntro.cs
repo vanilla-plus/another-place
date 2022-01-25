@@ -162,6 +162,8 @@ public class TimelineIntro : VanillaTimeline
             case 17: //17. Init Carousel / Fade In Menu/Carousel
                      //Hide Splash / FadeIn Selection Carousel
 
+                UIManager.MenuUI_active();
+
                 AppManager.Instance.SetUpCarouselMenu();
 
                 break;

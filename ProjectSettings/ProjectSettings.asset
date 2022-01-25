@@ -155,7 +155,7 @@ PlayerSettings:
   applicationIdentifier:
     : com.oculus.UnitySample
     Android: com.phoria.place
-    Standalone: com.svr.place_v0.1
+    Standalone: com.MHO.place
     iPhone: com.phoria.place.ios
   buildNumber:
     Standalone: 0

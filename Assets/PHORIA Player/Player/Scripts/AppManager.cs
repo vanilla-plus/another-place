@@ -129,56 +129,18 @@ public class AppManager : MonoBehaviour
 
     /* END VARS ======================================================================================================================== */
 
-
-    private static AppManager _instance;
-    public static AppManager Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                GameObject go = new GameObject("AppManager");
-                go.AddComponent<AppManager>();
-            }
-            return _instance;
-        }
-    }
-
-    void OnEnable()
-    {
-        Screen.sleepTimeout = SleepTimeout.NeverSleep;
-    }
-
-//    public static async Task<bool> CheckIfOnline(string pingTargetIP = "8.8.8.8", double pingTimeoutMilliseconds = 3000, callback<bool> callback = null)
-//    {
-//        bool online = false;
-//
-//        if (Application.internetReachability != NetworkReachability.ReachableViaCarrierDataNetwork)
-//        {
-//            Ping     ping          = new Ping(pingTargetIP);
-//            DateTime pingStartTime = DateTime.Now;
-//
-//            while (!ping.isDone && (DateTime.Now - pingStartTime).TotalMilliseconds < pingTimeoutMilliseconds) await Task.Delay(10);
-//
-//            if (ping.isDone)
-//                online = true;
-//        }
-//
-//        if (callback != null) callback(online);
-//        return online;
-//    }
-
+    public static AppManager Instance;
+    
     public static bool CheckIfOnline() => Application.internetReachability != NetworkReachability.NotReachable;
 
-    //when object loads
     void Awake()
     {
-        _instance = this;
-//        Initialise();
+        Instance = this;
+
+        Place.onCatalogueFetched += () => ExperienceList = Place.Catalogue;
     }
 
 
-    //when object loads
     public async void Initialise()
     {
         if (initialised) return;
@@ -217,6 +179,8 @@ public class AppManager : MonoBehaviour
         //Clearout any orphaned chunks for all locally stored experiences at start up
         //StartCoroutine(ContentManager.Instance.ClearChunks(LocalStorage));
 
+        
+        
         TimelineIntro.gameObject.SetActive(true);
 //        Debug.Log($"IsInternetConnected = {IsInternetConnected}, timeline going");
 
@@ -532,16 +496,19 @@ public class AppManager : MonoBehaviour
 
     }
 
-    public void SetUpCarouselMenu()
+    public async Task SetUpCarouselMenu()
     {
         foreach (var e in ExperienceList)
         {
-            Instantiate(original: Selection_TilePrefab,
-                        parent: CarouselScrollArea,
-                        worldPositionStays: false).GetComponent<Selection_Tile>().Populate(exp: e,
-                                                                                           carousel: CarouselComponent);
-        }
+            var newTile = Instantiate(original: Selection_TilePrefab,
+                                      parent: CarouselScrollArea,
+                                      worldPositionStays: false).GetComponent<Selection_Tile>();
 
+            CarouselComponent.tiles.Add(newTile);
+            
+            await newTile.Populate(e);
+        }
+        
         UIManager.curvedUI.AddEffectToChildren();
         
         CarouselComponent.InitialiseCarousel();

@@ -90,7 +90,9 @@ public class Experience
 
 	public Action<string> onRemoteByteSizeUpdate;
 	public Action<string> onLocalByteSizeUpdate;
-	
+
+	public Action<string> onDownloadRequirementUpdate;
+
 	public Action               onDownloadBegun;
 	public Action<ulong, float> onDownloadPacket;
 	public Action               onDownloadComplete;
@@ -127,7 +129,7 @@ public class Experience
 
 		UpdateLocalByteSize();
 		
-//		UpdateRemoteByteSize();
+		UpdateRemoteByteSize();
 
 //		Log(GetDownloadRequirement);
 	}
@@ -201,6 +203,10 @@ public class Experience
 	}
 
 
+	public void UpdateContentAvailability() => onContentAvailabilityChange?.Invoke(ContentFullyDownloaded);
+
+	public void UpdateDownloadRequirementText() => onDownloadRequirementUpdate?.Invoke(GetDownloadRequirement);
+
 
 	public void DownloadContent()
 	{
@@ -218,7 +224,13 @@ public class Experience
 		onDownloadPacket?.Invoke(arg1: (ulong)a.transferredBytes,
 		                         arg2: a.progress);
 
-		if (!a.isDone) return;
+//		if (!a.isDone) return; // isDone is borked
+
+		Log(a.progress); // This never actually reaches 1??
+
+		if (Math.Abs(a.progress - 1.0f) > Mathf.Epsilon) return;
+		
+		Log("Download completed successfully");
 
 		onDownloadComplete?.Invoke();
 		
@@ -239,7 +251,12 @@ public class Experience
 		Directory.Delete(path: LocalPath,
 		                 recursive: true);
 		
+		UpdateLocalByteSize();
+		
+		UpdateDownloadRequirementText();
+		
 		onContentAvailabilityChange?.Invoke(false);
+
 	}
 
 }

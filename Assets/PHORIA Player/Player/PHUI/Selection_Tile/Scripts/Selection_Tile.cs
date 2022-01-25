@@ -11,7 +11,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using UnityEngine.Serialization;
+
 using Vanilla.StringFormatting;
+
+using static UnityEngine.Debug;
 
 [Serializable]
 public class ULongEvent : UnityEvent<ulong> { }
@@ -27,59 +31,56 @@ public class Selection_Tile : MonoBehaviour
 
 //    private Experience _Experience;
 
-    [Header("Experience")]
+    [Header("Components")]
+    public Button button;
+
+    [HideInInspector]
+    public RectTransform rectTrans;
+
+    [Header("Experience Payload")]
     [SerializeField]
     public Experience experience;
-//    {
-//        get => _Experience;
-//        set
-//        {
-//            _Experience = value;
-//            
-//            Debug.Log($"Selection tile populated with Experience [{value.experienceTitle}]");
-//        
-//            SelectionHeading.text     = value.experienceTitle;
-//            SelectionDuration.text    = value.experienceDuration;
-//            SelectionDescription.text = value.experienceDescription;
-//        
-//            SetThumbnail();
-//        }
-//    }
 
-    [Header("Experience")]
-    public  RectTransform rectTrans;
-    private Button        _button;
+    [Header("Experience UI")]
+    public TextMeshProUGUI experienceHeadingText;
+    public TextMeshProUGUI experienceDurationText;
+    public TextMeshProUGUI experienceDescriptionText;
+    public Image experienceThumbnailImage;
+
+    [Header("Download Status UI")]
+    public GameObject downloadStatusPanel;
+    public TextMeshProUGUI downloadStatusText;
+    public Image downloadStatusIcon;
+
+    public Sprite downloadRequiredSprite;
+    public Sprite downloadCompleteSprite;
     
-    [Header("Selection UI")]
-    public TextMeshProUGUI SelectionHeading;
-    public TextMeshProUGUI SelectionDuration;
-    public TextMeshProUGUI SelectionDescription;
-    public Image SelectionThumbnail;
-
-    [Header("Notification UI")]
-    public GameObject NotificationPanel;
-    public TextMeshProUGUI NotificationText;
-    public Image NotificationIcon;
-    public Sprite[] NotificationIconList;
-    public GameObject RemovalPanel;
+//    public GameObject RemovalPanel;
+    public Button     deleteContentButton;
 
     [Header("Action Panel")]
-    public GameObject ActionPanel;
-    public Animator   ActionPanelAnimator;
+//    public GameObject ActionPanel;
+    public Animator   actionPanelAnimator;
 
-    public                   TextMeshProUGUI       FileSizeText;
-    public                   TextMeshProUGUI       DownloadProgressText;
-    public                   float                 downloadProgress, clampedDownloadProgress;
-    [SerializeField] private float                 InitialProgressValue;
-    public                   PHUI_Progress_Spinner DownloadProgressSpinner;
+    public                   TextMeshProUGUI FileSizeText;
+    public                   TextMeshProUGUI DownloadProgressBytesText;
+    public                   Text DownloadProgressPercentText;
+    public                   float           downloadProgress, clampedDownloadProgress;
+    [SerializeField] private float           InitialProgressValue;
+//    public                   PHUI_Progress_Spinner DownloadProgressSpinner;
 
+    [FormerlySerializedAs("DownloadInstruction")]
     [Header("Download UI")]
-    public TextMeshProUGUI DownloadInstruction;
-    public GameObject DownloadButton;
-    public TextMeshProUGUI DownloadDisclaimer;
-    public TextMeshProUGUI DownloadStorageMessage;
-    public TextMeshProUGUI DownloadBusyMessage;
-    public TextMeshProUGUI DownloadNoConnectionMessage;
+    public Button DownloadButton;
+    public TextMeshProUGUI downloadInstructionText;
+    [FormerlySerializedAs("DownloadDisclaimer")]
+    public TextMeshProUGUI downloadDisclaimerText;
+    [FormerlySerializedAs("DownloadStorageMessage")]
+    public TextMeshProUGUI downloadStorageMessageText;
+    [FormerlySerializedAs("DownloadBusyMessage")]
+    public TextMeshProUGUI downloadBusyMessageText;
+    [FormerlySerializedAs("DownloadNoConnectionMessage")]
+    public TextMeshProUGUI downloadNoConnectionText;
 
 //    private string SelectionBasePath;
 //    public bool SelectionIsReady;
@@ -87,8 +88,6 @@ public class Selection_Tile : MonoBehaviour
     public Animator TileAnimator;
     public string TotalDownloadFileSize;
     
-    private _PHUI_Carousel ParentCarousel;
-
     int lastTone = 2;
 
     [Header("Remote")]
@@ -180,7 +179,7 @@ public class Selection_Tile : MonoBehaviour
         needToDownload,
         preparingDownload,
         currentlyDownloading,
-        processDownload,
+//        processDownload,
         settings_confirmRemoval,
         settings_removingExperience,
         settings_experienceRemoved
@@ -218,16 +217,17 @@ public class Selection_Tile : MonoBehaviour
     
     // Magic string <-> hashes
     
-    private static readonly int             HighlightEnter             = Animator.StringToHash("highlightEnter");
-    private static readonly int             HighlightExit              = Animator.StringToHash("highlightExit");
-    private static readonly int             ReadyToPlay                = Animator.StringToHash("readyToPlay");
-    private static readonly int             NeedToDownload             = Animator.StringToHash("needToDownload");
-    private static readonly int             PreparingDownload          = Animator.StringToHash("preparingDownload");
-    private static readonly int             CurrentlyDownloading       = Animator.StringToHash("currentlyDownloading");
-    private static readonly int             ProcessDownload            = Animator.StringToHash("processDownload");
-    private static readonly int             SettingsConfirmRemoval     = Animator.StringToHash("settings_confirmRemoval");
-    private static readonly int             SettingsRemovingExperience = Animator.StringToHash("settings_removingExperience");
-    private static readonly int             SettingsExperienceRemoved  = Animator.StringToHash("settings_experienceRemoved");
+    private static readonly int             c_HighlightEnter             = Animator.StringToHash("highlightEnter");
+    private static readonly int             c_HighlightExit              = Animator.StringToHash("highlightExit");
+    
+    private static readonly int             c_ReadyToPlay                = Animator.StringToHash("readyToPlay");
+    private static readonly int             c_NeedToDownload             = Animator.StringToHash("needToDownload");
+    private static readonly int             c_PreparingDownload          = Animator.StringToHash("preparingDownload");
+    private static readonly int             c_CurrentlyDownloading       = Animator.StringToHash("currentlyDownloading");
+    private static readonly int             c_ProcessDownload            = Animator.StringToHash("processDownload");
+    private static readonly int             c_SettingsConfirmRemoval     = Animator.StringToHash("settings_confirmRemoval");
+    private static readonly int             c_SettingsRemovingExperience = Animator.StringToHash("settings_removingExperience");
+    private static readonly int             c_SettingsExperienceRemoved  = Animator.StringToHash("settings_experienceRemoved");
 
     private static char _slash => Path.DirectorySeparatorChar;
 
@@ -289,8 +289,8 @@ public class Selection_Tile : MonoBehaviour
 
 
     //## streamline start into relevant functions
-    private void Start()
-    {
+//    private void Start()
+//    {
 //        localContentFolder = ContentManager.localDirectory.GetRelativeFolder(_episodeSubpath);
         
 //        if (localContentFolder == null)
@@ -309,7 +309,7 @@ public class Selection_Tile : MonoBehaviour
 //            return;
 //        }
         
-        Debug.LogWarning("Selection_Tile Start");
+//        Debug.LogWarning("Selection_Tile Start");
         
 //        rectTrans = (RectTransform)transform;
 
@@ -317,19 +317,19 @@ public class Selection_Tile : MonoBehaviour
 
 //        ActionPanelAnimator = ActionPanel.GetComponent<Animator>();
         
-        _button   = GetComponent<Button>();
+//        _button   = GetComponent<Button>();
         
-        Shader.EnableKeyword("UNITY_UI_CLIP_RECT");
+//        Shader.EnableKeyword("UNITY_UI_CLIP_RECT");
 //        ParentCarousel = GetComponentInParent<_PHUI_Carousel>();
 //        if (NotificationPanel) NotificationPanel.SetActive(false);
         
 //        SelectionIsDownloading = false;
         //DownloadingAnimator = ActionPanel.GetComponent<Animator>();
 
-        SetTileState(TileStates.idle);
+//        SetTileState(TileStates.idle);
         //Debug.Log("HEY YOU! The video path is: " + videoPath + " and the other one is: "+SelectionBasePath);
 
-        if (!Place.IsOnline) return;
+//        if (!Place.IsOnline) return;
 
         //Debug.Log(" ===== " + Experience.experienceTitle + " ===== START ====== SelectionIsReady  " + SelectionIsReady);
 //        ResetFileSizeValues();
@@ -345,37 +345,22 @@ public class Selection_Tile : MonoBehaviour
 //        UpdateLocalContentFileSize();
 
 //        UpdateLocalFolderSize();
-        UpdateRemoteFolderSize();
-        UpdateDownloadSize();
+//        UpdateRemoteFolderSize();
+//        UpdateDownloadSize();
         
 //        IsExperienceReadyToPlay();
-    }
+//    }
 
 //    public void UpdateLocalFolderSize() => localFolderSize = localContentFolder.GetBytes();
-    public void UpdateRemoteFolderSize() => remoteFolderSize = remoteContentFolder.GetBytes();
+//    public void UpdateRemoteFolderSize() => remoteFolderSize = remoteContentFolder.GetBytes();
 
     
-    public void Populate(Experience exp,
-                         _PHUI_Carousel carousel)
-    {
-        experience     = exp;
-        ParentCarousel = carousel;
 
-        Debug.Log($"Selection tile populated with Experience [{exp.title}]");
-
-        SelectionHeading.text     = exp.title;
-        SelectionDuration.text    = exp.duration;
-        SelectionDescription.text = exp.description;
-
-        carousel.tiles.Add(this);
-
-        SelectionThumbnail.sprite = exp.sprite;
-    }
 
 
     private void Update()
     {
-        if (SelectionIsDownloading) UpdateDownloadUI();
+//        if (SelectionIsDownloading) UpdateDownloadUI();
 
         // DEBUG
         if (Input.GetKeyDown(KeyCode.O) && download != null) download.Cancel();
@@ -425,7 +410,7 @@ public class Selection_Tile : MonoBehaviour
 
     public void UpdateRemoteContentFileSize()
     {
-        Debug.LogWarning("Selection_Tile UpdateRemoteContentFileSize");
+        LogWarning("Selection_Tile UpdateRemoteContentFileSize");
 
 //        _remoteContentPath = $"Content{Path.DirectorySeparatorChar}{Experience.basePath}";
         
@@ -437,13 +422,13 @@ public class Selection_Tile : MonoBehaviour
 
         remoteFolderSize = remoteContentFolder.GetBytes();
 
-        Debug.Log($"Remote file size successfully updated - [{remoteFolderSize}]");
+        Log($"Remote file size successfully updated - [{remoteFolderSize}]");
 
         remoteFileExists = remoteFolderSize != 0;
 
         if (!remoteFileExists)
         {
-            Debug.LogError($"The episode {experience.title} video file could not be found.");
+            LogError($"The episode {experience.title} video file could not be found.");
         }
     }
 
@@ -469,50 +454,51 @@ public class Selection_Tile : MonoBehaviour
 //    }
 
 
-    public void UpdateDownloadSize()
-    {
-        Debug.LogWarning("Selection_Tile UpdateDownloadSize");
-
-//        downloadBytesRemaining = remoteFolderSize - localFolderSize;
-        downloadBytesRemaining = remoteFolderSize - LocalFolderSize;
-
-//        onDownloadTotalUpdate.Invoke(downloadFileSize);
-        
-        if (downloadBytesRemaining > 0)
-        {
-            string sizeAbbr                              = "";
-            if (downloadBytesRemaining >= 1073741824) sizeAbbr = "GB"; else sizeAbbr = "MB";
-
-            SetTotalFileDownloadSize((long)downloadBytesRemaining);
-            //SetDownloadTextValue("0.00 " + sizeAbbr);
-            SetDownloadProgressValue(downloadProgress);
-
-            //Debug.Log($"remoteFileSize: {remoteFileSize} | localFileSize: {localFileSize}");
-            decimal percentageDone = (decimal)LocalFolderSize / (decimal)remoteFolderSize;
-            downloadProgress     = (float)percentageDone;
-            InitialProgressValue = downloadProgress;
-            
-            //Debug.Log($"remoteFileSize: {remoteFileSize} | localFileSize: {localFileSize}| downloadFileSize: {downloadFileSize} percentageDone: {percentageDone}");
-            if ((float)percentageDone >= 0.01f)
-            {
-                NotificationPanel.SetActive(true);
-                SetNotifcationPanelValues(String.Format("{0:0}", percentageDone * 100) + "%", 2);
-            }
-        }
-    }
+//    public void UpdateDownloadSize()
+//    {
+//        LogWarning("Selection_Tile UpdateDownloadSize");
+//
+////        downloadBytesRemaining = remoteFolderSize - localFolderSize;
+//        downloadBytesRemaining = remoteFolderSize - LocalFolderSize;
+//
+////        onDownloadTotalUpdate.Invoke(downloadFileSize);
+//        
+//        if (downloadBytesRemaining > 0)
+//        {
+//            string sizeAbbr                              = "";
+//            if (downloadBytesRemaining >= 1073741824) sizeAbbr = "GB"; else sizeAbbr = "MB";
+//
+//            SetTotalFileDownloadSize((long)downloadBytesRemaining);
+//            //SetDownloadTextValue("0.00 " + sizeAbbr);
+//            SetDownloadProgressValue(downloadProgress);
+//
+//            //Debug.Log($"remoteFileSize: {remoteFileSize} | localFileSize: {localFileSize}");
+//            decimal percentageDone = (decimal)LocalFolderSize / (decimal)remoteFolderSize;
+//            downloadProgress     = (float)percentageDone;
+//            InitialProgressValue = downloadProgress;
+//            
+//            //Debug.Log($"remoteFileSize: {remoteFileSize} | localFileSize: {localFileSize}| downloadFileSize: {downloadFileSize} percentageDone: {percentageDone}");
+//            if ((float)percentageDone >= 0.01f)
+//            {
+//                downloadStatusPanel.SetActive(true);
+////                SetNotificationPanelValues(String.Format("{0:0}", percentageDone * 100) + "%", 2);
+//            }
+//        }
+//    }
 
 
     public async void IsExperienceReadyToPlay()
     {
 //        // The madness ends here - Lucas
 //        
-//        return;
+        return;
 
-        Debug.LogWarning("IsExperienceReadyToPlay");
+        LogWarning("IsExperienceReadyToPlay");
+
 
         if (LocalFolderSize >= remoteFolderSize)
         {
-            Debug.Log($"Experience [{experience.title}] is downloaded and playable!");
+            Log($"Experience [{experience.title}] is downloaded and playable!");
             
 //            SetIsReady(true);
             SetContentState(ContentStates.readyToPlay);
@@ -544,11 +530,11 @@ public class Selection_Tile : MonoBehaviour
                 //Debug.Log("ContentStates.preparingDownload - SelectionIsDownloading : is false - preparing Download");
                 SetContentState(ContentStates.preparingDownload);
             }
-            else if (currentContentState == ContentStates.processDownload)
-            {
-                //Debug.Log("ContentStates.processDownload - SelectionIsDownloading : is false - process Download");
-                SetContentState(ContentStates.processDownload);
-            }
+//            else if (currentContentState == ContentStates.processDownload)
+//            {
+//                //Debug.Log("ContentStates.processDownload - SelectionIsDownloading : is false - process Download");
+//                SetContentState(ContentStates.processDownload);
+//            }
             else
             {
                 //Debug.Log("ContentStates.needToDownload - SelectionIsDownloading : is false - need to download");
@@ -578,7 +564,7 @@ public class Selection_Tile : MonoBehaviour
                         else
                         {
                             SetDownloaderState(DownloadStates.storageFull);
-                            DownloadStorageMessage.SetText("");
+                            downloadStorageMessageText.SetText("");
                             //Debug.Log($"NOT enough space for this download of {downloadFileSize}!!! {currentAvailableStorage} < {downloadFileSize}");
 
                             string storageNeeded    = remoteFolderSize.AsDataSize();
@@ -587,7 +573,7 @@ public class Selection_Tile : MonoBehaviour
                             string storageMessage   = "There is not enough available storage on this<BR>device to download this experience.<size=28><BR><BR>Required: " + storageNeeded + "<BR><BR>Available: " + storageAvailable;
                             storageMessage += "<BR><BR></size><size=32>Please free up the required ammount of storage<BR>on your device and try again.</size>";
 
-                            DownloadStorageMessage.SetText(storageMessage);
+                            downloadStorageMessageText.SetText(storageMessage);
                             //Debug.Log("DownloadStorageMessage: " + DownloadStorageMessage.text);
                         }
                     }
@@ -611,12 +597,12 @@ public class Selection_Tile : MonoBehaviour
         currentDownloaderState = downloadState;
 
         FileSizeText.gameObject.SetActive(false);
-        DownloadInstruction.gameObject.SetActive(false);
+        downloadInstructionText.gameObject.SetActive(false);
         DownloadButton.gameObject.SetActive(false);
-        DownloadDisclaimer.gameObject.SetActive(false);
-        DownloadStorageMessage.gameObject.SetActive(false);
-        DownloadBusyMessage.gameObject.SetActive(false);
-        DownloadNoConnectionMessage.gameObject.SetActive(false);
+        downloadDisclaimerText.gameObject.SetActive(false);
+        downloadStorageMessageText.gameObject.SetActive(false);
+        downloadBusyMessageText.gameObject.SetActive(false);
+        downloadNoConnectionText.gameObject.SetActive(false);
 
         switch (downloadState)
         {
@@ -624,21 +610,21 @@ public class Selection_Tile : MonoBehaviour
 
                 break;
             case DownloadStates.downloaderBusy:
-                DownloadBusyMessage.gameObject.SetActive(true);
+                downloadBusyMessageText.gameObject.SetActive(true);
                 break;
 
             case DownloadStates.storageFull:
-                DownloadStorageMessage.gameObject.SetActive(true);
+                downloadStorageMessageText.gameObject.SetActive(true);
                 break;
 
             case DownloadStates.readyToDownload:
                 FileSizeText.gameObject.SetActive(true);
-                DownloadInstruction.gameObject.SetActive(true);
+                downloadInstructionText.gameObject.SetActive(true);
                 DownloadButton.gameObject.SetActive(true);
-                DownloadDisclaimer.gameObject.SetActive(true);
+                downloadDisclaimerText.gameObject.SetActive(true);
                 break;
             case DownloadStates.noConnection:
-                DownloadNoConnectionMessage.gameObject.SetActive(true);
+                downloadNoConnectionText.gameObject.SetActive(true);
                 break;
         }
 
@@ -679,9 +665,9 @@ public class Selection_Tile : MonoBehaviour
     public void ExperienceReadyAndDownloaded()
     {
         //Debug.Log("Download is done");
-        ActionPanelAnimator.SetTrigger("readyToPlay");
+        actionPanelAnimator.SetTrigger("readyToPlay");
 //        SetIsReady(true);
-        NotificationPanel.SetActive(true);
+        downloadStatusPanel.SetActive(true);
         SetContentState(ContentStates.readyToPlay);
         //Debug.Log("Play button should be shown");
 
@@ -700,7 +686,7 @@ public class Selection_Tile : MonoBehaviour
 //        var remotePath = Path.Combine(AppManager.contentPath,
 //                                      experience.basePath);
 
-        Debug.Log($"Downloadin'!\nLocalPath [{_localEpisodePath}]\nRemotePath [{_relativeContentPath}]");
+        Log($"Downloadin'!\nLocalPath [{_localEpisodePath}]\nRemotePath [{_relativeContentPath}]");
 
 
         download = new AWS.S3.Download(_localEpisodePath,
@@ -759,38 +745,38 @@ public class Selection_Tile : MonoBehaviour
 //        DownloadProgressSpinner.SetProgressValue(downloadProgress);
 //    }
 
-    private void UpdateDownloadUI()
-    {
-        SetNotifcationPanelValues(String.Format("{0:0}", clampedDownloadProgress * 100) + "%", 2);
+//    private void UpdateDownloadUI()
+//    {
+//        SetNotificationPanelValues(String.Format("{0:0}", clampedDownloadProgress * 100) + "%", 2);
         
-        DownloadProgressText.text = $"{LocalFolderSize.AsDataSize()} of {_remoteFolderSize.AsDataSize()}";
+//        DownloadProgressText.text = $"{LocalFolderSize.AsDataSize()} of {_remoteFolderSize.AsDataSize()}";
         
 //        DownloadProgressSpinner.SetProgressValue(downloadProgress);
-    }
+//    }
     
-    private void SetNotifcationPanelValues(string textToUse, int iconToUseFromArray)
-    {
-        NotificationText.fontSize = 38f;
-        
-        switch (iconToUseFromArray)
-        {
-            case 0:
-                NotificationIcon.gameObject.SetActive(false);
-                break;
-            case 1:
-                NotificationIcon.gameObject.SetActive(true);
-                break;
-            case 2:
-                NotificationText.fontSize = 60f;
-                NotificationIcon.gameObject.SetActive(true);
-                break;
-
-            default:
-                break;
-        }
-        NotificationIcon.sprite = NotificationIconList[iconToUseFromArray];
-        NotificationText.text = textToUse;
-    }
+//    private void SetNotificationPanelValues(string textToUse, int iconToUseFromArray)
+//    {
+//        downloadStatusText.fontSize = 38f;
+//        
+//        switch (iconToUseFromArray)
+//        {
+//            case 0:
+//                downloadStatusIcon.gameObject.SetActive(false);
+//                break;
+//            case 1:
+//                downloadStatusIcon.gameObject.SetActive(true);
+//                break;
+//            case 2:
+//                downloadStatusText.fontSize = 60f;
+//                downloadStatusIcon.gameObject.SetActive(true);
+//                break;
+//
+//            default:
+//                break;
+//        }
+//        downloadStatusIcon.sprite = NotificationIconList[iconToUseFromArray];
+//        downloadStatusText.text = textToUse;
+//    }
 
 //    public void SetHeadingText(string experienceTitle)
 //    {
@@ -858,7 +844,7 @@ public class Selection_Tile : MonoBehaviour
                 break;
             case TileStates.selected:
                 TileAnimator.SetTrigger("selected");
-                _button.interactable = false;
+                button.interactable = false;
                 break;
         }
 
@@ -868,55 +854,55 @@ public class Selection_Tile : MonoBehaviour
     {
         currentContentState = contentState;
         
-        Debug.Log("SelectionTile : SetContentState : " + currentContentState);
+        Log("SelectionTile : SetContentState : " + currentContentState);
 
         switch (contentState)
         {
             case ContentStates.readyToPlay:
-                ActionPanelAnimator.SetTrigger(ReadyToPlay);
-                NotificationPanel.SetActive(true);
-                SetNotifcationPanelValues("Ready", 1);
-                RemovalPanel.SetActive(true);
+                actionPanelAnimator.SetTrigger(c_ReadyToPlay);
+                downloadStatusPanel.SetActive(true);
+//                SetNotificationPanelValues("Ready", 1);
+//                RemovalPanel.SetActive(true);
                 break;
 
             case ContentStates.needToDownload:
-                ActionPanelAnimator.SetTrigger(NeedToDownload);
-                NotificationPanel.SetActive(false);
-                SetNotifcationPanelValues("", 0);
-                RemovalPanel.SetActive(false);
+                actionPanelAnimator.SetTrigger(c_NeedToDownload);
+                downloadStatusPanel.SetActive(false);
+//                SetNotificationPanelValues("", 0);
+//                RemovalPanel.SetActive(false);
                 break;
 
-            case ContentStates.preparingDownload:
-                ActionPanelAnimator.SetTrigger(PreparingDownload);
-                NotificationPanel.SetActive(true);
-                SetNotifcationPanelValues("Preparing...", 0);
-                break;
+//            case ContentStates.preparingDownload:
+//                ActionPanelAnimator.SetTrigger(PreparingDownload);
+//                downloadStatusPanel.SetActive(true);
+//                SetNotificationPanelValues("Preparing...", 0);
+//                break;
 
             case ContentStates.currentlyDownloading:
-                ActionPanelAnimator.SetTrigger(CurrentlyDownloading);
-                NotificationPanel.SetActive(true);
-                SetNotifcationPanelValues("", 2);
+                actionPanelAnimator.SetTrigger(c_CurrentlyDownloading);
+                downloadStatusPanel.SetActive(true);
+//                SetNotificationPanelValues("", 2);
                 break;
 
-            case ContentStates.processDownload:
-                ActionPanelAnimator.SetTrigger(ProcessDownload);
-                NotificationPanel.SetActive(true);
-                SetNotifcationPanelValues("Processing...", 0);
-                break;
+//            case ContentStates.processDownload:
+//                ActionPanelAnimator.SetTrigger(ProcessDownload);
+//                downloadStatusPanel.SetActive(true);
+////                SetNotificationPanelValues("Processing...", 0);
+//                break;
 
             case ContentStates.settings_confirmRemoval:
-                ActionPanelAnimator.SetTrigger(SettingsConfirmRemoval);
-                RemovalPanel.SetActive(false);
+                actionPanelAnimator.SetTrigger(c_SettingsConfirmRemoval);
+//                RemovalPanel.SetActive(false);
                 break;
 
             case ContentStates.settings_removingExperience:
-                ActionPanelAnimator.SetTrigger(SettingsRemovingExperience);
-                RemovalPanel.SetActive(false);
+                actionPanelAnimator.SetTrigger(c_SettingsRemovingExperience);
+//                RemovalPanel.SetActive(false);
                 break;
 
             case ContentStates.settings_experienceRemoved:
-                ActionPanelAnimator.SetTrigger(SettingsExperienceRemoved);
-                RemovalPanel.SetActive(false);
+                actionPanelAnimator.SetTrigger(c_SettingsExperienceRemoved);
+//                RemovalPanel.SetActive(false);
                 break;
             
             default:
@@ -964,17 +950,17 @@ public class Selection_Tile : MonoBehaviour
 //        DownloadProgressText.text = progressText + " of " + FileSizeToString(remoteFileSize);
 //    }
 
-    public void SetDownloadProgressValue(float progressValue)
-    {
-        downloadProgress = progressValue;
-        if (downloadProgress < InitialProgressValue) downloadProgress = InitialProgressValue;
-
-        downloadProgress = Mathf.Clamp(downloadProgress, 0.01f, 0.99f);
-//        DownloadProgressSpinner.SetProgressValue(downloadProgress);
-        SetNotifcationPanelValues(String.Format("{0:0}", downloadProgress * 100) + "%", 2);
-
-        DownloadProgressText.text = FileSizeToString((long)(Convert.ToInt64(remoteFolderSize) * downloadProgress)) + " of " + FileSizeToString((long)remoteFolderSize);
-    }
+//    public void SetDownloadProgressValue(float progressValue)
+//    {
+//        downloadProgress = progressValue;
+//        if (downloadProgress < InitialProgressValue) downloadProgress = InitialProgressValue;
+//
+//        downloadProgress = Mathf.Clamp(downloadProgress, 0.01f, 0.99f);
+////        DownloadProgressSpinner.SetProgressValue(downloadProgress);
+////        SetNotificationPanelValues(String.Format("{0:0}", downloadProgress * 100) + "%", 2);
+//
+//        DownloadProgressText.text = FileSizeToString((long)(Convert.ToInt64(remoteFolderSize) * downloadProgress)) + " of " + FileSizeToString((long)remoteFolderSize);
+//    }
 
 
     public void SelectTile()
@@ -982,9 +968,9 @@ public class Selection_Tile : MonoBehaviour
 
         if (currentTileState == TileStates.idle) // if tile is in an idle state 
         {
-            ParentCarousel.AddNewHighlightTile(this);
+            _PHUI_Carousel.i.AddNewHighlightTile(this);
             //Debug.Log("From the tile : i'm number #" + ParentCarousel.GetCarouselItemNumber(this.gameObject));
-            ParentCarousel.SetCarouselItemIndex(ParentCarousel.GetCarouselItemNumber(gameObject));
+            _PHUI_Carousel.i.SetCarouselItemIndex(_PHUI_Carousel.i.GetCarouselItemNumber(gameObject));
         }
     }
 
@@ -996,12 +982,12 @@ public class Selection_Tile : MonoBehaviour
             if (onEnter)
             {
                 //Debug.Log("SetIdleTileHighlight onEnter = enter ");
-                TileAnimator.SetTrigger(id: HighlightEnter);
+                TileAnimator.SetTrigger(id: c_HighlightEnter);
             }
             else
             {
                 //Debug.Log("SetIdleTileHighlight onEnter = exit ");
-                TileAnimator.SetTrigger(id: HighlightExit);
+                TileAnimator.SetTrigger(id: c_HighlightExit);
             }
         }
     }
@@ -1022,7 +1008,7 @@ public class Selection_Tile : MonoBehaviour
             SetTileState(TileStates.selected);
         }
         
-        _button.interactable = false;
+        button.interactable = false;
 
     }
 
@@ -1039,7 +1025,7 @@ public class Selection_Tile : MonoBehaviour
             SetTileState(TileStates.idle);
         }
         
-        _button.interactable = true;
+        button.interactable = true;
 
     }
 
@@ -1060,60 +1046,50 @@ public class Selection_Tile : MonoBehaviour
         //Debug.Log("SelectionTile : ConfirmDeleteExperience : starting the deletion confirmation process");
 //        SetContentState(ContentStates.settings_confirmRemoval);
         
-        ActionPanelAnimator.SetTrigger(SettingsConfirmRemoval);
-        RemovalPanel.SetActive(false);
+        actionPanelAnimator.SetTrigger(c_SettingsConfirmRemoval);
+//        RemovalPanel.SetActive(false);
     }
 
     public void StartDeleteGracePeriod()
     {
         //Debug.Log("SelectionTile : StartDeleteGracePeriod : kicking it off,  waiting 10 seconds");
-        SetContentState(ContentStates.settings_removingExperience);
-        Invoke("WaitForDeleteGracePeriod", 3f);
+//        SetContentState(ContentStates.settings_removingExperience);
+        
+        actionPanelAnimator.SetTrigger(c_SettingsRemovingExperience);
+//        RemovalPanel.SetActive(false);
+
+        Invoke(nameof(WaitForDeleteGracePeriod), 3f);
     }
 
     void WaitForDeleteGracePeriod()
     {
         //Debug.Log("SelectionTile : WaitForDeleteGracePeriod : Too late, deleting");
-        SetContentState(ContentStates.settings_experienceRemoved);
-        DeleteExperience();
+//        SetContentState(ContentStates.settings_experienceRemoved);
+
+        actionPanelAnimator.SetTrigger(c_SettingsExperienceRemoved);
+//        RemovalPanel.SetActive(false);
+        
+        DeleteContent();
     }
 
     public void CancelDeleteExperience()
     {
         //Debug.Log("SelectionTile : CancelDeleteExperience : cancelled, just made it!");
-        CancelInvoke("WaitForDeleteGracePeriod");
+        CancelInvoke(nameof(WaitForDeleteGracePeriod));
         StartCoroutine(WaitAndResetTile(0.25f));
 
         if (AppManagerPlace.Instance.UseAnalytics) Analytics.EndDownload(true, GetDownloadPercentString());
     }
 
-    void DeleteExperience()
-    {
-        var targetPath = Path.Combine(AppManager.Instance.LocalStorage,
-                                      AppManager.contentPath,
-                                      experience.basePath);
 
-        Debug.Log($"I'm going to destory the world and this directory {targetPath}");
 
-        Directory.Delete(targetPath,
-                         true);
-
-//        localFileSize = 0;
-        
-//        ContentManager.BuildFolderLists(AppManager.Instance.LocalStorage);
-        
-//        StartCoroutine(WaitAndResetTile(5f));
-        
-        UpdateDownloadSize();
-
-    }
 
     IEnumerator WaitAndResetTile(float waitTime)
     {
         //Debug.Log("SelectionTile : WaitAndResetTile : waiting before the state change");
         yield return new WaitForSeconds(waitTime);
         
-        UpdateDownloadSize();
+//        UpdateDownloadSize();
         
 //        ResetFileSizeValues();
         IsExperienceReadyToPlay();
@@ -1131,6 +1107,133 @@ public class Selection_Tile : MonoBehaviour
     }
 
 
+    // -------------------------------------------------------------------------------------------------------------------------- Sanity Restored //
 
+    public async Task Populate(Experience exp)
+    {
+        LogWarning($"Tile [{experience.title}]\tPopulate");
+
+        // Not sure, possibly vital functionality from old version of the app
+        
+        Shader.EnableKeyword("UNITY_UI_CLIP_RECT");
+        
+        SetTileState(TileStates.idle);
+        
+        // Populate all the UI references for the experience payload class
+        
+        experience                      = exp;
+        experienceHeadingText.text      = exp.title;
+        experienceDurationText.text     = exp.duration;
+        experienceDescriptionText.text  = exp.description;
+        experienceThumbnailImage.sprite = exp.sprite;
+
+        // Connect all our important UI update events
+        
+        exp.onContentAvailabilityChange += ContentAvailabilityChangeHandler;
+        exp.onDownloadRequirementUpdate += DownloadRequirementUpdateHandler;
+        exp.onDownloadBegun             += DownloadBegunHandler;
+        exp.onDownloadPacket            += DownloadPacketHandler;
+        exp.onDownloadComplete          += DownloadCompleteHandler;
+
+        // This one already fired so we'll just populate him manually here.
+
+        DownloadRequirementUpdateHandler(exp.remoteByteSizeString);
+        
+        // Ask the experience to fetch its remote size from S3
+
+        await exp.UpdateRemoteByteSize();
+        
+        // Ask the experience to update and emit if its locally available on device storage
+        
+        exp.UpdateContentAvailability();
+    }
+
+
+    [ContextMenu("Make Available")]
+    public void MakeAvailable() => ContentAvailabilityChangeHandler(true);
+
+
+    [ContextMenu("Make Unavailable")]
+    public void MakeUnAvailable() => ContentAvailabilityChangeHandler(false);
+    
+    public void ContentAvailabilityChangeHandler(bool available)
+    {
+        LogWarning($"Tile [{experience.title}]\tContentAvailabilityChangeHandler [{available}]");
+        
+        if (available)
+        {
+            LogWarning($"AnimDebug for [{experience.title}] SetTrigger[{c_ReadyToPlay}]");
+
+            actionPanelAnimator.SetTrigger(id: c_ReadyToPlay);
+            downloadStatusIcon.sprite   = downloadCompleteSprite;
+            downloadStatusText.fontSize = 38f;
+            downloadStatusText.text     = "Ready";
+            deleteContentButton.gameObject.SetActive(true);
+
+        }
+        else
+        {
+            LogWarning($"AnimDebug for [{experience.title}] SetTrigger[{c_NeedToDownload}]");
+            
+            actionPanelAnimator.SetTrigger(id: c_NeedToDownload);
+            downloadStatusIcon.sprite   = downloadRequiredSprite;
+            downloadStatusText.fontSize = 60f;
+            downloadStatusText.text     = string.Empty;
+            deleteContentButton.gameObject.SetActive(false);
+            
+//            FileSizeText.gameObject.SetActive(true);
+//            downloadInstructionText.gameObject.SetActive(true);
+//            DownloadButton.gameObject.SetActive(true);
+//            downloadDisclaimerText.gameObject.SetActive(true);
+        }
+        
+    }
+
+
+    private void DownloadRequirementUpdateHandler(string sizeString)
+    {
+        Log($"Tile [{experience.title}]\tDownload Requirement Update [{sizeString}]");
+
+        FileSizeText.text = "TOTAL SIZE: " + sizeString;
+    }
+
+
+    private void DownloadBegunHandler()
+    {
+        Log($"Tile [{experience.title}]\tDownload Begun");
+
+        downloadStatusText.text = "0%";
+        
+        actionPanelAnimator.SetTrigger(c_CurrentlyDownloading);
+    }
+
+    private void DownloadPacketHandler(ulong transferred, float progress)
+    {
+        var transferredString = transferred.AsDataSize();
+
+        var progressPercent = Mathf.FloorToInt(progress * 100);
+        
+        Log($"Tile [{experience.title}]\tDownload Progress [{transferredString}] [{progressPercent}%]");
+        
+        downloadStatusText.text = $"{progressPercent}%";
+
+        DownloadProgressBytesText.text   = $"{transferredString} / {experience.remoteByteSizeString}";
+        DownloadProgressPercentText.text = progressPercent.ToString();
+    }
+
+
+    private void DownloadCompleteHandler()
+    {
+        Log($"Tile [{experience.title}]\tDownload Complete");
+        
+        downloadStatusText.text = "100%";
+        
+        actionPanelAnimator.SetTrigger(c_ReadyToPlay);
+    }
+
+
+    public void DownloadContent() => experience.DownloadContent();
+    
+    public void DeleteContent() => experience.DeleteContent();
 
 }

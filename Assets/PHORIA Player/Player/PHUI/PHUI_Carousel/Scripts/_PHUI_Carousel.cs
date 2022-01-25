@@ -11,6 +11,8 @@ using UnityEngine.UI;
 public class _PHUI_Carousel : MonoBehaviour
 {
 
+    public static _PHUI_Carousel i;
+    
     [Header("PHUI Carousel Options")]
     [Tooltip("The carousel scrolling time/speed to move to a new item, per measured in seconds")]
     public float CarouselSpeed = 3f;
@@ -80,6 +82,12 @@ public class _PHUI_Carousel : MonoBehaviour
 //        //Debug.Log("TotalCarouselItems: " + TotalCarouselItems);
 //        CarouselItemList.Add(newItem);
 //    }
+
+
+    void Awake()
+    {
+        i = this;
+    }
 
 
     //set up the stuff that doesn't need any carousel items to configure 
