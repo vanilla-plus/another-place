@@ -113,6 +113,7 @@ public static class Place
 	public static List<Experience> Catalogue = new List<Experience>(16);
 
 	public static Action onCatalogueFetched;
+
 	
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 	private static async void PreSceneInitialize()

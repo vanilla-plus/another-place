@@ -137,7 +137,7 @@ public class AppManager : MonoBehaviour
     {
         Instance = this;
 
-        Place.onCatalogueFetched += () => ExperienceList = Place.Catalogue;
+        Place.onCatalogueFetched += Initialise;
     }
 
 
@@ -146,6 +146,8 @@ public class AppManager : MonoBehaviour
         if (initialised) return;
         initialised = true;
 
+        ExperienceList = Place.Catalogue;
+        
 //        IsInternetConnected = false;
 
 //        IsInternetConnected = CheckIfOnline();

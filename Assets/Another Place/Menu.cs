@@ -1,9 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 using UnityEngine;
-using UnityEngine.UI;
 
 public class Menu : MonoBehaviour
 {
@@ -13,45 +10,46 @@ public class Menu : MonoBehaviour
 	[SerializeField]
 	private RectTransform _rect;
 
-	private float _x;
-	public float x
-	{
-		get => _x;
-		set
-		{
-			_x = Mathf.Clamp(value,
-			                 -tileSpace,
-			                 -tileSpace * tiles.Count);
-			
-			
-		}
-	}
-
-	public Vector2 dest;
+	private       float _x;
+	private       float _xVel;
+	private const float xAnimDuration = 0.1666f;
 	
 	public List<Experience> experiences = new List<Experience>();
 
 	public GameObject tilePrefab;
 
 	public RectTransform tileParent;
-	
+
+	[SerializeField]
+	private Tile _currentTile = null;
+	public Tile currentTile
+	{
+		get => _currentTile;
+		set
+		{
+			if (_currentTile)
+			{
+				_currentTile.selected = false;
+				_currentTile.enabled  = true;
+			}
+
+			if (value)
+			{
+				value.selected = true;
+				value.enabled  = true;
+			}
+
+			_currentTile = value;
+		}
+	}
+
 	public List<Tile> tiles = new List<Tile>();
 
-	public float tileSpace = -1;
-	public float tileHalfSpace = -1;
-	
-	public float tilePixelWidth  = -1;
-	public float tilePixelOffset = -1;
-
-	public int tileCountLessOne = -1;
-	
 	private void Awake()
 	{
 		i = this;
 
 		_rect = (RectTransform)tileParent.transform;
-
-		dest = _rect.anchoredPosition;
 
 		Place.onCatalogueFetched += Initialize;
 	}
@@ -59,83 +57,44 @@ public class Menu : MonoBehaviour
 
 	public async void Initialize()
 	{
-		tilePixelOffset = GetComponentInChildren<HorizontalLayoutGroup>().spacing;
-		
 		experiences = Place.Catalogue;
-		
+
+		Tile prev = null;
+
 		foreach (var e in experiences)
 		{
 			var newTile = Instantiate(original: tilePrefab,
 			                          parent: tileParent,
 			                          worldPositionStays: false).GetComponent<Tile>();
 
-			if (tilePixelWidth < 0) tilePixelWidth = ((RectTransform)newTile.transform).sizeDelta.x;
+			newTile.prev = prev;
+
+			prev = newTile;
 			
 			tiles.Add(newTile);
-            
+
 			await newTile.Populate(e);
 		}
-
-		tileSpace     = tilePixelWidth + tilePixelOffset;
-		tileHalfSpace = tileSpace * 0.5f;
-
-		tileCountLessOne = tiles.Count - 1;
-
-		dest.x = tileCountLessOne * tileHalfSpace;
-	}
-	
-	// SmoothStep testing
-
-	// Minimum and maximum values for the transition.
-	public float slideFrom = 10.0f;
-	public float slideTo = 20.0f;
-
-	// Time taken for the transition.
-	public float slideDuration = 2.5f;
-
-	public float startTime;
-
-	public float slideTimer = -1.0f;
-
-	void OnEnable()
-	{
-		ResetSlide();
-
-	}
-
-
-	public void ResetSlide()
-	{
-		startTime = Time.time;
 		
-		slideTimer = slideDuration;
+		currentTile = tiles[0];
 
+		enabled = true;
+		
 	}
 
 	void Update()
 	{
-		
-		
-		dest.x = Mathf.Clamp(dest.x,
-		                     -tileSpace,
-		                     -tileSpace * tiles.Count);
-		
-		_rect.anchoredPosition = Vector2.Lerp(_rect.anchoredPosition,
-		                                      dest,
-		                                      Time.deltaTime);
+		foreach (var t in tiles) t.Arrange();
+
+		if (!_currentTile) return;
+
+		_x = Mathf.SmoothDamp(current: _x,
+		                      target: -_currentTile.xPosition,
+		                      currentVelocity: ref _xVel,
+		                      smoothTime: xAnimDuration);
+
+		_rect.anchoredPosition = new Vector2(x: _x,
+		                                     y: 0);
 	}
-
-//	void Update()
-//	{
-////		var t = (Time.time - startTime) / duration;
-//
-//		dest.x = Mathf.SmoothStep(slideFrom,
-//		                          slideTo,
-//		                          Time.deltaTime);
-//
-//		_rect.anchoredPosition = dest;
-//	}
-
-
 
 }
