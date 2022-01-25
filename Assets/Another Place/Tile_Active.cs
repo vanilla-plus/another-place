@@ -8,7 +8,27 @@ public class Tile_Active : MonoBehaviour
 {
 
 	public CanvasGroup activeGroup;
+
+//	public RectTransform headerRect;
+
+//	public float headerMinHeight = 0.0f;
+//	public float headerMaxHeight = 320.0f;
 	
-	void Awake() => GetComponentInParent<Tile>().onSelectNormalFrame += n => activeGroup.alpha = n.InOutQuadratic();
+	void Awake()
+	{
+		var tile = GetComponentInParent<Tile>();
+
+		tile.onSelected += () => activeGroup.gameObject.SetActive(true);
+		
+		tile.onSelectNormalFrame += n =>
+		                            {
+			                            activeGroup.alpha = n.InOutQuadratic();
+
+			                            if (n < 0.001f)
+			                            {
+				                            activeGroup.gameObject.SetActive(false);
+			                            }
+		                            };
+	}
 
 }

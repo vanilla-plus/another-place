@@ -7,6 +7,7 @@ using TMPro;
 
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 using static UnityEngine.Debug;
@@ -31,7 +32,11 @@ public class Tile : MonoBehaviour
 	public RectTransform _backgroundRect;
 	public Image         _backgroundImage;
 
-	public TMP_Text hoverHeading;
+	[FormerlySerializedAs("hoverHeading")]
+	public TMP_Text title;
+	public TMP_Text description;
+	public TMP_Text duration;
+//	public TMP_Text title;
 
 	public bool  hovered     = false;
 
@@ -71,8 +76,8 @@ public class Tile : MonoBehaviour
 
 	public Action<float> onSelectNormalFrame;
 
-	public const float minWindowSize = 500.0f;
-	public const float maxWindowSize = 1500.0f;
+	public const float minWindowSize = 700.0f;
+	public const float maxWindowSize = 1920.0f;
 
 	public const float minBackgroundImageHeight = 1280.0f;
 
@@ -144,7 +149,9 @@ public class Tile : MonoBehaviour
 		
 		// Hover Heading
 
-		hoverHeading.text = e.title;
+		title.text       = e.title;
+		description.text = e.description;
+		duration.text    = e.duration;
 	}
 
 
