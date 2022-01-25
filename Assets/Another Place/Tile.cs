@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -8,9 +9,14 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class Tile : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+using static UnityEngine.Debug;
+
+public class Tile : MonoBehaviour
 {
 
+	public static Tile               Selected;
+	public static Action<Tile, Tile> OnSelect;
+	
 	public Tile prev;
 	
 	public RectTransform _rect;
@@ -22,8 +28,44 @@ public class Tile : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	public Image         _backgroundImage;
 
 	public TMP_Text hoverHeading;
+
+	public bool  hovered     = false;
+
+	[SerializeField]
+	private float _hoverNormal    = 0.0f;
+	public float hoverNormal
+	{
+		get => _hoverNormal;
+		set
+		{
+			_hoverNormal = value;
+			
+			onHoverNormalFrame?.Invoke(value);
+		}
+	}
+
+	public  float hoverNormalRate = 1.0f;
+
+	public Action<float> onHoverNormalFrame;
+
+	public bool  selected         = false;
 	
-	public bool selected = false;
+	[SerializeField]
+	private float _selectNormal = 0.0f;
+	public float selectNormal
+	{
+		get => _selectNormal;
+		set
+		{
+			_selectNormal = value;
+			
+			onSelectNormalFrame?.Invoke(value);
+		}
+	}
+	
+	public float selectNormalRate = 1.0f;
+
+	public Action<float> onSelectNormalFrame;
 
 	public const float minWindowSize = 500.0f;
 	public const float maxWindowSize = 1500.0f;
@@ -44,10 +86,23 @@ public class Tile : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
 		if (!_rect) _rect     = (RectTransform)transform;
 		if (!_button) _button = GetComponentInChildren<Button>();
+
+		OnSelect += (outgoing,
+		             incoming) =>
+		            {
+			            if (outgoing == this && selected)
+			            {
+				            selected = false;
+				            
+				            DeSelectHandler();
+			            }
+		            };
+
+		onSelectNormalFrame += n => { };
 	}
 
-	[ContextMenu("Click")]
-	public void OnClick() => Menu.i.currentTile = this;
+//	[ContextMenu("Click")]
+//	public void OnClick() => Menu.i.currentTile = this;
 
 
 //	public float GetRelativePosition() => _rect.anchoredPosition.x + _rect.sizeDelta.x * 0.5f + Menu.i.margin;
@@ -90,38 +145,130 @@ public class Tile : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	}
 
 
-	public void Update()
+	public async Task HoverStart()
 	{
-		if (selected)
+		hovered = true;
+		
+		while (hovered && hoverNormal < 1.0f)
+		{
+			hoverNormal = Mathf.Clamp01(hoverNormal + Time.deltaTime * hoverNormalRate);
+			
+			await Task.Yield();
+		}
+
+		Log("HoverStart done");
+	}
+	
+	public async Task HoverEnd()
+	{
+		hovered = false;
+
+		while (!hovered && hoverNormal > 0.0f)
+		{
+			hoverNormal = Mathf.Clamp01(hoverNormal - Time.deltaTime * hoverNormalRate);
+
+			await Task.Yield();
+		}
+		
+		Log("HoverEnd done");
+	}
+
+
+	public void Select()
+	{
+		if (Selected == this) return;
+
+		var oldSelected = Selected;
+		
+		Selected = this;
+
+		selected = true;
+
+		OnSelect?.Invoke(arg1: oldSelected,
+		                 arg2: Selected);
+
+		SelectHandler();
+	}
+
+
+	private async Task SelectHandler()
+	{
+		while (selected && Mathf.Abs(_rect.sizeDelta.x - maxWindowSize) > 0.1f)
 		{
 			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
 			                                                  target: maxWindowSize,
 			                                                  currentVelocity: ref expandVel,
 			                                                  smoothTime: expandDuration),
 			                              y: _rect.sizeDelta.y);
-
-			expandTimer += Time.deltaTime;
-
-			if (expandTimer > 1.0f) enabled = false;
+			
+			await Task.Yield();
 		}
-		else
+		
+//		while (selected &&
+//		       selectNormal < 1.0f)
+//		{
+//			selectNormal = Mathf.Clamp01(selectNormal + Time.deltaTime * selectNormalRate);
+//			
+//			await Task.Yield();
+//		}
+	}
+
+
+	private async Task DeSelectHandler()
+	{
+		while (!selected && Mathf.Abs(_rect.sizeDelta.x - minWindowSize) > 0.1f)
 		{
 			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
 			                                                  target: minWindowSize,
 			                                                  currentVelocity: ref expandVel,
 			                                                  smoothTime: expandDuration),
 			                              y: _rect.sizeDelta.y);
-
-			expandTimer -= Time.deltaTime;
-
-			if (expandTimer < 0.0f) enabled = false;
+			
+			await Task.Yield();
 		}
-
+		
+//		while (!selected &&
+//		       selectNormal > 0.0f)
+//		{
+//			selectNormal = Mathf.Clamp01(selectNormal - Time.deltaTime * selectNormalRate);
+//
+//			await Task.Yield();
+//		}
 	}
 
 
-	public void OnPointerEnter(PointerEventData eventData) => Debug.Log("Hover start?");
+//	public void Update()
+//	{
+//
+//		
+//		if (selected)
+//		{
+//			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
+//			                                                  target: maxWindowSize,
+//			                                                  currentVelocity: ref expandVel,
+//			                                                  smoothTime: expandDuration),
+//			                              y: _rect.sizeDelta.y);
+//
+//			expandTimer += Time.deltaTime;
+//
+//			if (expandTimer > 1.0f) enabled = false;
+//		}
+//		else
+//		{
+//			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
+//			                                                  target: minWindowSize,
+//			                                                  currentVelocity: ref expandVel,
+//			                                                  smoothTime: expandDuration),
+//			                              y: _rect.sizeDelta.y);
+//
+//			expandTimer -= Time.deltaTime;
+//
+//			if (expandTimer < 0.0f) enabled = false;
+//		}
+//
+//	}
 
-	public void OnPointerExit(PointerEventData eventData) => Debug.Log("Hover end?");
+
+
 
 }

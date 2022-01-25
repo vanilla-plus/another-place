@@ -1,6 +1,9 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using UnityEngine;
+
+using static UnityEngine.Debug;
 
 public class Menu : MonoBehaviour
 {
@@ -10,46 +13,29 @@ public class Menu : MonoBehaviour
 	[SerializeField]
 	private RectTransform _rect;
 
-	private       float _x;
-	private       float _xVel;
+	public        float _x;
+	public        float _xVel;
 	private const float xAnimDuration = 0.1666f;
-	
+
 	public List<Experience> experiences = new List<Experience>();
 
 	public GameObject tilePrefab;
 
 	public RectTransform tileParent;
 
-	[SerializeField]
-	private Tile _currentTile = null;
-	public Tile currentTile
-	{
-		get => _currentTile;
-		set
-		{
-			if (_currentTile)
-			{
-				_currentTile.selected = false;
-				_currentTile.enabled  = true;
-			}
-
-			if (value)
-			{
-				value.selected = true;
-				value.enabled  = true;
-			}
-
-			_currentTile = value;
-		}
-	}
-
 	public List<Tile> tiles = new List<Tile>();
 
 	private void Awake()
 	{
 		i = this;
+		
+		_x = 0.0f;
 
+		Tile.OnSelect += TileSelectedHandler;
+		
 		_rect = (RectTransform)tileParent.transform;
+
+		_rect.anchoredPosition = Vector2.zero;
 
 		Place.onCatalogueFetched += Initialize;
 	}
@@ -75,26 +61,38 @@ public class Menu : MonoBehaviour
 
 			await newTile.Populate(e);
 		}
-		
-		currentTile = tiles[0];
 
+		tiles[0].Select();
+		
 		enabled = true;
 		
 	}
 
+
 	void Update()
 	{
 		foreach (var t in tiles) t.Arrange();
+	}
 
-		if (!_currentTile) return;
+	private async void TileSelectedHandler(Tile outgoing,
+	                                       Tile incoming)
+	{
+		if (incoming == null) return;
 
-		_x = Mathf.SmoothDamp(current: _x,
-		                      target: -_currentTile.xPosition,
-		                      currentVelocity: ref _xVel,
-		                      smoothTime: xAnimDuration);
+		while (ReferenceEquals(objA: incoming,
+		                       objB: Tile.Selected) &&
+		       Mathf.Abs(_x - incoming.xPosition) > 0.1f)
+		{
+			_x = Mathf.SmoothDamp(current: _x,
+			                      target: incoming.xPosition,
+			                      currentVelocity: ref _xVel,
+			                      smoothTime: xAnimDuration);
 
-		_rect.anchoredPosition = new Vector2(x: _x,
-		                                     y: 0);
+			_rect.anchoredPosition = new Vector2(x: -_x,
+			                                     y: 0);
+
+			await Task.Yield();
+		}
 	}
 
 }
