@@ -27,6 +27,8 @@ using static UnityEngine.Debug;
 public class Experience
 {
 
+	public JSONNode node;
+
 	private const string c_MaleOnboardingFileName   = "male-onboarding.mp3";
 	private const string c_MaleBeginnerFileName     = "male-beginner.mp3";
 	private const string c_MaleIntermediateFileName = "male-intermediate.mp3";
@@ -101,6 +103,8 @@ public class Experience
 
 	public Experience(JSONNode node)
 	{
+		this.node        = node;
+		
 		title       = node["Title"].Value;
 		description = node["Description"].Value;
 		duration    = node["Duration"].Value;

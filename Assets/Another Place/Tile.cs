@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
 
+using SimpleJSON;
+
 using UnityEngine;
 
 using static UnityEngine.Debug;
@@ -144,7 +146,7 @@ public class Tile : MonoBehaviour
 	// Data Actions
 
 	[Tooltip("Invoked when the tile receives its Experience data payload class.")]
-	public Action<Experience> onPopulate;
+	public Action<Experience, JSONNode> onPopulate;
 
 	// Hover Actions
 
@@ -244,13 +246,14 @@ public class Tile : MonoBehaviour
 	}
 
 
-	public async Task Populate(Experience e)
+	public async Task Populate(Experience e, JSONNode page)
 	{
 		gameObject.name = e.title;
 
 		experience = e;
 
-		onPopulate?.Invoke(e);
+		onPopulate?.Invoke(arg1: e,
+		                   arg2: page);
 	}
 
 

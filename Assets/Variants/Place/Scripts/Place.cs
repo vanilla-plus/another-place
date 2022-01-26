@@ -112,7 +112,7 @@ public static class Place
 	
 	public static List<Experience> Catalogue = new List<Experience>(16);
 
-	public static Action onCatalogueFetched;
+	public static Action<JSONArray> onCatalogueFetched;
 
 	
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -276,7 +276,7 @@ public static class Place
 
 		foreach (var e in episodes) Catalogue.Add(new Experience(node: e));
 
-		onCatalogueFetched?.Invoke();
+		onCatalogueFetched?.Invoke(episodes);
 		
 		_RemoteConfigFetched = true;
 	}

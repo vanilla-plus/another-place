@@ -1,3 +1,5 @@
+using SimpleJSON;
+
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
@@ -40,7 +42,8 @@ public class Tile_Background : Tile_Element
 	}
 
 
-	private void HandlePopulate(Experience e)
+	private void HandlePopulate(Experience e,
+	                            JSONNode page)
 	{
 		var s = e.sprite;
 

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using SimpleJSON;
+
 using UnityEngine;
 
 using static UnityEngine.Debug;
@@ -44,12 +46,14 @@ public class Menu : MonoBehaviour
 	}
 
 
-	public async void Initialize()
+	public async void Initialize(JSONArray catalogue)
 	{
 		experiences = Place.Catalogue;
 
 		Tile_Layout_Flex_Horizontal prev = null;
 
+		var i = -1;
+		
 		foreach (var e in experiences)
 		{
 			var newTile = Instantiate(original: tilePrefab,
@@ -62,17 +66,16 @@ public class Menu : MonoBehaviour
 			
 			tiles.Add(newTile);
 
-			await newTile.Populate(e);
+			await newTile.Populate(e, catalogue[++i]);
 		}
 
-//		Time.timeScale = 0.1f;
+		// This is required for Tile scripts to have enough time to initialize themselves.
+		
+		await Task.Yield();
 
-		await Task.Yield(); // Give it a frame for scripts to init
-
-		tiles[0].Select();
+//		tiles[0].Select();
 		
 		enabled = true;
-		
 	}
 
 
