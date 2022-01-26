@@ -254,10 +254,9 @@ MonoBehaviour:
   description: {fileID: 4945804299389162402}
   duration: {fileID: 2719921954517464350}
   hovered: 0
-  _hoverNormal: 0
+  hoverNormal: 0
   hoverNormalRate: 2
-  selected: 0
-  _selectNormal: 0
+  selectNormal: 0
   selectNormalRate: 1.5
   xPosition: 0
   expandTimer: 0
@@ -844,6 +843,7 @@ GameObject:
   - component: {fileID: 574577704551841902}
   - component: {fileID: 5472185996910592565}
   - component: {fileID: 8347886036417977623}
+  - component: {fileID: 708377729397977010}
   - component: {fileID: 1690772138115340733}
   - component: {fileID: 6592814209262601317}
   m_Layer: 5
@@ -896,7 +896,20 @@ MonoBehaviour:
   backgroundRect: {fileID: 574577704551841902}
   background: {fileID: 1690772138115340733}
   hoverZoomScale: 1.1
-  fadeEffect: 0.75
+--- !u!114 &708377729397977010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9204933112304807486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebb9bdf2489f9304b8beda3c863a3ed6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tile: {fileID: 511532819540457702}
+  background: {fileID: 1690772138115340733}
 --- !u!114 &1690772138115340733
 MonoBehaviour:
   m_ObjectHideFlags: 0

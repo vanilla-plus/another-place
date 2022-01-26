@@ -18,7 +18,7 @@ public class Tile_Active : MonoBehaviour
 	{
 		var tile = GetComponentInParent<Tile>();
 
-		tile.onSelected += () => activeGroup.gameObject.SetActive(true);
+		tile.onBecameSelected += () => activeGroup.gameObject.SetActive(true);
 		
 		tile.onSelectNormalFrame += n =>
 		                            {

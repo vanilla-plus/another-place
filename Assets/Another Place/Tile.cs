@@ -15,12 +15,13 @@ using static UnityEngine.Debug;
 public class Tile : MonoBehaviour
 {
 
-	public static Tile               Selected;
+	public static Tile Selected;
 
-	public Action onSelected;
-	public Action onDeselected;
 	
-	public static Action<Tile, Tile> OnSelectChange;
+	public Action onBecameSelected;
+	public Action onBecameDeselected;
+	
+	public static Action<Tile, Tile> OnSelectedChanged;
 	
 	public Tile prev;
 	
@@ -40,41 +41,47 @@ public class Tile : MonoBehaviour
 
 	public bool  hovered     = false;
 
-	[SerializeField]
-	private float _hoverNormal    = 0.0f;
-	public float hoverNormal
-	{
-		get => _hoverNormal;
-		set
-		{
-			_hoverNormal = value;
-			
-			onHoverNormalFrame?.Invoke(value);
-		}
-	}
+//	[SerializeField]
+//	private float _hoverNormal    = 0.0f;
+//	public float hoverNormal
+//	{
+//		get => _hoverNormal;
+//		set
+//		{
+//			_hoverNormal = value;
+//			
+//			onHoverNormalFrame?.Invoke(value);
+//		}
+//	}
 
-	public  float hoverNormalRate = 1.0f;
+	public float hoverNormal;
+
+	public  float hoverNormalRate = 2.0f;
 
 	public Action<float> onHoverNormalFrame;
+	public Action<float> onDehoverNormalFrame;
 
-	public bool  selected         = false;
+//	public bool  selected         = false;
 	
-	[SerializeField]
-	private float _selectNormal = 0.0f;
-	public float selectNormal
-	{
-		get => _selectNormal;
-		set
-		{
-			_selectNormal = value;
-			
-			onSelectNormalFrame?.Invoke(value);
-		}
-	}
+//	[SerializeField]
+//	private float _selectNormal = 0.0f;
+//	public float selectNormal
+//	{
+//		get => _selectNormal;
+//		set
+//		{
+//			_selectNormal = value;
+//			
+//			onSelectNormalFrame?.Invoke(value);
+//		}
+//	}
+
+	public float selectNormal;
 	
-	public float selectNormalRate = 1.0f;
+	public float selectNormalRate = 2.0f;
 
 	public Action<float> onSelectNormalFrame;
+	public Action<float> onDeselectNormalFrame;
 
 	public const float minWindowSize = 700.0f;
 	public const float maxWindowSize = 1920.0f;
@@ -96,7 +103,7 @@ public class Tile : MonoBehaviour
 		if (!_rect) _rect     = (RectTransform)transform;
 		if (!_button) _button = GetComponentInChildren<Button>();
 
-		OnSelectChange += OnSelectChangeHandler;
+		OnSelectedChanged += OnSelectChangeHandler;
 //		                  {
 //			                  if (outgoing == this && selected)
 //			                  {
@@ -157,11 +164,15 @@ public class Tile : MonoBehaviour
 
 	public async Task HoverStart()
 	{
+		if (hovered) return;
+		
 		hovered = true;
 		
 		while (hovered && hoverNormal < 1.0f)
 		{
 			hoverNormal = Mathf.Clamp01(hoverNormal + Time.deltaTime * hoverNormalRate);
+			
+			onHoverNormalFrame?.Invoke(hoverNormal);
 			
 			await Task.Yield();
 		}
@@ -171,11 +182,15 @@ public class Tile : MonoBehaviour
 	
 	public async Task HoverEnd()
 	{
+		if (!hovered) return;
+		
 		hovered = false;
 
 		while (!hovered && hoverNormal > 0.0f)
 		{
 			hoverNormal = Mathf.Clamp01(hoverNormal - Time.deltaTime * hoverNormalRate);
+
+			onDehoverNormalFrame?.Invoke(hoverNormal);
 
 			await Task.Yield();
 		}
@@ -183,37 +198,73 @@ public class Tile : MonoBehaviour
 		Log("HoverEnd done");
 	}
 
+
+	internal bool IsSelected =>
+		ReferenceEquals(objA: Selected,
+		                objB: this);
+
+	private static bool NothingSelected =>
+		ReferenceEquals(objA: Selected,
+		                objB: null);
+	
 	public void TrySelect()
 	{
-		if (Selected == this) return;
+		// Can't be Selected twice!
+		
+		if (IsSelected) return;
+
+		Select();
+	}
+
+	public void Select()
+	{
+		// Tell the old guy he's fired, if he exists
+
+		if (!NothingSelected) Selected.Deselect();
 
 		var oldSelected = Selected;
-
+		
 		Selected = this;
 
-		selected = true;
+		onBecameSelected?.Invoke();
 
-		OnSelectChange?.Invoke(arg1: oldSelected,
-		                 arg2: Selected);
-		
-		onSelected?.Invoke();
+		OnSelectedChanged?.Invoke(arg1: oldSelected,
+		                          arg2: this);
 		
 		ExpandSizeHandler();
 		SelectNormalHandler();
+	}
+
+
+//	public void TryDeselect()
+//	{
+//		// Can't be Deselected if you aren't Selected to begin with
+//		
+//		if (!IsSelected) return;
+//
+//		Deselect();
+//	}
+
+	public void Deselect()
+	{
+		onBecameDeselected?.Invoke();
+
+		ShrinkSizeHandler();
+		DeselectNormalHandler();
 	}
 	
 	private void OnSelectChangeHandler(Tile outgoing,
 	                                         Tile incoming)
 	{
-		if (selected &&
+		if (IsSelected &&
 		    ReferenceEquals(objA: outgoing,
 		                    objB: this))
 		{
 			// Another tile was selected, meaning this one is deselected
 			
-			selected = false;
+//			selected = false;
 
-			onDeselected?.Invoke();
+			onBecameDeselected?.Invoke();
 
 			ShrinkSizeHandler();
 			DeselectNormalHandler();
@@ -222,21 +273,29 @@ public class Tile : MonoBehaviour
 
 	private async Task SelectNormalHandler()
 	{
-		while (selected &&
+		while (IsSelected &&
 		       selectNormal < 1.0f)
 		{
 			selectNormal = Mathf.Clamp01(selectNormal + Time.deltaTime * selectNormalRate);
 			
+			onSelectNormalFrame?.Invoke(selectNormal);
+			
 			await Task.Yield();
 		}
 	}
-	
+
+
 	private async Task DeselectNormalHandler()
 	{
-		while (!selected &&
-		       selectNormal > 0.0f)
+		Log("Deselect Normal Task start");
+
+		while (selectNormal > 0.0f)
 		{
 			selectNormal = Mathf.Clamp01(selectNormal - Time.deltaTime * selectNormalRate);
+
+			Log($"Deselect Normal frame! [{selectNormal}]");
+
+			onDeselectNormalFrame?.Invoke(selectNormal);
 
 			await Task.Yield();
 		}
@@ -245,7 +304,7 @@ public class Tile : MonoBehaviour
 
 	private async Task ExpandSizeHandler()
 	{
-		while (selected && Mathf.Abs(_rect.sizeDelta.x - maxWindowSize) > 0.1f)
+		while (IsSelected && Mathf.Abs(_rect.sizeDelta.x - maxWindowSize) > 0.1f)
 		{
 			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
 			                                                  target: maxWindowSize,
@@ -260,7 +319,7 @@ public class Tile : MonoBehaviour
 
 	private async Task ShrinkSizeHandler()
 	{
-		while (!selected &&
+		while (!IsSelected &&
 		       Mathf.Abs(_rect.sizeDelta.x - minWindowSize) > 0.1f)
 		{
 			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
