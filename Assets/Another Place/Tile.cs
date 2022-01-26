@@ -46,10 +46,23 @@ public class Tile : MonoBehaviour
 
 			_selected = value;
 
-			if (_selected) 
+			if (_selected)
+			{
+				if (!NothingSelected) Selected.Deselect();
+		
+				var oldSelected = Selected;
+
+				Selected = this;
+
+				OnSelectedChanged?.Invoke(arg1: oldSelected,
+				                          arg2: this);
+				
 				SelectIn();
-			else 
+			}
+			else
+			{
 				SelectOut();
+			}
 		}
 	}
 	
@@ -282,18 +295,20 @@ public class Tile : MonoBehaviour
 		
 		selected = true;
 
+		focused = true;
+
 		// Tell the old guy he's fired, if he exists
 
-		if (!NothingSelected) Selected.Deselect();
-		
-		var oldSelected = Selected;
+//		if (!NothingSelected) Selected.Deselect();
 
-		Selected = this;
+//		var oldSelected = Selected;
+
+//		Selected = this;
 
 //		onSelect?.Invoke();
 
-		OnSelectedChanged?.Invoke(arg1: oldSelected,
-		                          arg2: this);
+//		OnSelectedChanged?.Invoke(arg1: oldSelected,
+//		                          arg2: this);
 
 //		SelectIn();
 	}
