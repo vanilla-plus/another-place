@@ -26,7 +26,7 @@ public class Tile_Test : Tile_Element
 		tile.onHoverInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInFrame\t[{n}]");
 		tile.onHoverInEnd   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInEnd");
 		
-		tile.onSelectInStart += () => LogError($"Tile_Test\t[{tile.experience.title}]\tonSelectInStart");
+		tile.onSelectInStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInStart");
 		tile.onSelectInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInFrame\t[{n}]");
 		tile.onSelectInEnd   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInEnd");
 		

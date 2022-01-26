@@ -3,17 +3,18 @@ using System.Threading.Tasks;
 
 using UnityEngine;
 
-using static UnityEngine.Debug;
-
 public class Tile : MonoBehaviour
 {
 
 	public static Tile               Selected;
 	public static Action<Tile, Tile> OnSelectedChanged;
 
+	public Tile_Layout_Flex_Horizontal layout;
+
 	public Experience experience;
-	
-	public Tile prev;
+
+//	public ILayout<Tile, Vector2> window;
+//	public Tile       prev;
 
 	public RectTransform _rect;
 
@@ -224,20 +225,20 @@ public class Tile : MonoBehaviour
 
 
 //	public float GetRelativePosition() => _rect.anchoredPosition.x + _rect.sizeDelta.x * 0.5f + Menu.i.margin;
-	public float GetHalfWidth() => _rect.sizeDelta.x * 0.5f + margin;
-
-
-	public void Arrange()
-	{
-		if (!prev) return;
-
-		// My x position is the x position of prev plus half of its width and half of my width (and some margin x 2)
-
-		xPosition = prev.xPosition + prev.GetHalfWidth() + GetHalfWidth();
-
-		_rect.anchoredPosition = new Vector2(x: xPosition,
-		                                     y: 0.0f);
-	}
+//	public float GetHalfWidth() => _rect.sizeDelta.x * 0.5f + margin;
+//
+//
+//	public void Arrange()
+//	{
+//		if (!prev) return;
+//
+//		// My x position is the x position of prev plus half of its width and half of my width (and some margin x 2)
+//
+//		xPosition = prev.xPosition + prev.GetHalfWidth() + GetHalfWidth();
+//
+//		_rect.anchoredPosition = new Vector2(x: xPosition,
+//		                                     y: 0.0f);
+//	}
 
 
 	public async Task Populate(Experience e)

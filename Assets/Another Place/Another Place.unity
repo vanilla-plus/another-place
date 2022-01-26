@@ -586,7 +586,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa71d4980c0e5014f87b00a70a377e67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _rect: {fileID: 0}
+  _rect: {fileID: 1941545288}
   _x: 0
   _xVel: 0
   experiences: []

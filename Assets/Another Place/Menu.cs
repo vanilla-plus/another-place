@@ -45,7 +45,7 @@ public class Menu : MonoBehaviour
 	{
 		experiences = Place.Catalogue;
 
-		Tile prev = null;
+		Tile_Layout_Flex_Horizontal prev = null;
 
 		foreach (var e in experiences)
 		{
@@ -53,9 +53,9 @@ public class Menu : MonoBehaviour
 			                          parent: tileParent,
 			                          worldPositionStays: false).GetComponent<Tile>();
 
-			newTile.prev = prev;
+			newTile.layout.previous = prev;
 
-			prev = newTile;
+			prev = newTile.layout;
 			
 			tiles.Add(newTile);
 
@@ -75,7 +75,7 @@ public class Menu : MonoBehaviour
 
 	void Update()
 	{
-		foreach (var t in tiles) t.Arrange();
+		foreach (var t in tiles) t.layout.Arrange();
 	}
 
 	private async void TileSelectedHandler(Tile outgoing,
@@ -85,10 +85,10 @@ public class Menu : MonoBehaviour
 
 		while (ReferenceEquals(objA: incoming,
 		                       objB: Tile.Selected) &&
-		       Mathf.Abs(_x - incoming.xPosition) > 0.1f)
+		       Mathf.Abs(_x - incoming.layout.relativePosition.x) > 0.1f)
 		{
 			_x = Mathf.SmoothDamp(current: _x,
-			                      target: incoming.xPosition,
+			                      target: incoming.layout.relativePosition.x,
 			                      currentVelocity: ref _xVel,
 			                      smoothTime: xAnimDuration);
 
