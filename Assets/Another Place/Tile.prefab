@@ -307,6 +307,7 @@ RectTransform:
   - {fileID: 3196049684846139938}
   - {fileID: 574577704551841902}
   - {fileID: 6998495541073808762}
+  - {fileID: 1727090278790259902}
   - {fileID: 2815558467040297879}
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -337,6 +338,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   layout: {fileID: 8080424286100151750}
+  _rect: {fileID: 3722410134678540805}
   experience:
     title: 
     description: 
@@ -361,17 +363,17 @@ MonoBehaviour:
     remoteByteSizeString: 
     localByteSize: 0
     localByteSizeString: 
-  _rect: {fileID: 3722410134678540805}
   _hovered: 0
-  _selected: 0
-  _focused: 0
   _hoverNormal: 0
+  hoverNormalRate: 2
+  _selected: 0
   _selectNormal: 0
+  selectNormalRate: 2
+  _focused: 0
   _focusNormal: 0
-  hoverNormalRate: 1
-  selectNormalRate: 1
-  focusNormalRate: 1
-  xPosition: 0
+  focusNormalRate: 2
+  minWindowSize: 700
+  maxWindowSize: 1920
 --- !u!114 &8080424286100151750
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -408,7 +410,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3722410134678540806}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d8eab2093c5975144997389122c65cea, type: 3}
   m_Name: 
@@ -454,10 +456,9 @@ RectTransform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children:
-  - {fileID: 1727090278790259902}
+  m_Children: []
   m_Father: {fileID: 3722410134678540805}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -539,10 +540,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rect: {fileID: 6998495541073808762}
   group: {fileID: 4734084548203711470}
+  text: {fileID: 0}
   minHeight: 0
-  maxHeight: 0
+  maxHeight: 40
   scaleMin: 1
-  scaleMax: 1.5
+  scaleMax: 2
 --- !u!225 &4734084548203711470
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -877,7 +879,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1727090278790259902
 RectTransform:
   m_ObjectHideFlags: 0
@@ -885,14 +887,14 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9109954323546293652}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 5410059067487737605}
   - {fileID: 1371601378995885355}
-  m_Father: {fileID: 2815558467040297879}
-  m_RootOrder: 0
+  m_Father: {fileID: 3722410134678540805}
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0.5}
@@ -1017,6 +1019,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rect: {fileID: 574577704551841902}
   background: {fileID: 1690772138115340733}
+  enforceMinimumImageSize: 1
+  minWidth: 1920
+  minHeight: 1280
   hoverZoomScale: 1.1
 --- !u!114 &1690772138115340733
 MonoBehaviour:

@@ -26,9 +26,9 @@ public class Tile_Events : Tile_Element,
 //		                           };
 	}
 	
-	public void OnPointerEnter(PointerEventData eventData) => tile.StartHover();
+	public void OnPointerEnter(PointerEventData eventData) => tile.Hover();
 
-	public void OnPointerExit(PointerEventData eventData) => tile.EndHover();
+	public void OnPointerExit(PointerEventData eventData) => tile.Dehover();
 
 	public void OnPointerClick(PointerEventData eventData) => tile.Select();
 

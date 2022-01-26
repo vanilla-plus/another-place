@@ -3,21 +3,21 @@ using System.Threading.Tasks;
 
 using UnityEngine;
 
+using static UnityEngine.Debug;
+
 public class Tile : MonoBehaviour
 {
 
-	public static Tile               Selected;
-	public static Action<Tile, Tile> OnSelectedChanged;
+	public static Tile Selected;
 
+	[Header("References")]
 	public Tile_Layout_Flex_Horizontal layout;
-
-	public Experience experience;
-
-//	public ILayout<Tile, Vector2> window;
-//	public Tile       prev;
 
 	public RectTransform _rect;
 
+	public Experience experience;
+
+	[Header("Hover state")]
 	[SerializeField]
 	private bool _hovered = false;
 	public bool hovered
@@ -29,13 +29,32 @@ public class Tile : MonoBehaviour
 
 			_hovered = value;
 
-			if (_hovered) 
-				HoverIn();
-			else 
-				HoverOut();
+			if (_hovered)
+			{
+				onHover?.Invoke();
+
+				FillHoverNormal();
+			}
+			else
+			{
+				onDehover?.Invoke();
+
+				DrainHoverNormal();
+			}
 		}
 	}
-	
+
+	[SerializeField]
+	private float _hoverNormal;
+	public float hoverNormal
+	{
+		get => _hoverNormal;
+		set => _hoverNormal = Mathf.Clamp01(value);
+	}
+
+	public float hoverNormalRate = 2.0f;
+
+	[Header("Selected state")]
 	[SerializeField]
 	private bool _selected = false;
 	public bool selected
@@ -50,23 +69,38 @@ public class Tile : MonoBehaviour
 			if (_selected)
 			{
 				if (!NothingSelected) Selected.Deselect();
-		
+
 				var oldSelected = Selected;
 
 				Selected = this;
 
 				OnSelectedChanged?.Invoke(arg1: oldSelected,
 				                          arg2: this);
-				
-				SelectIn();
+
+				onSelect?.Invoke();
+
+				FillSelectNormal();
 			}
 			else
 			{
-				SelectOut();
+				onDeselect?.Invoke();
+
+				DrainSelectNormal();
 			}
 		}
 	}
-	
+
+	[SerializeField]
+	private float _selectNormal = 0.0f;
+	public float selectNormal
+	{
+		get => _selectNormal;
+		set => _selectNormal = Mathf.Clamp01(value);
+	}
+
+	public float selectNormalRate = 2.0f;
+
+	[Header("Focus state")]
 	[SerializeField]
 	private bool _focused = false;
 	public bool focused
@@ -78,36 +112,18 @@ public class Tile : MonoBehaviour
 
 			_focused = value;
 
-			if (_focused) 
-				FocusIn();
-			else 
-				FocusOut();
-		}
-	}
-	
-	[SerializeField]
-	private float _hoverNormal;
-	public float hoverNormal
-	{
-		get => _hoverNormal;
-		set
-		{
-			_hoverNormal = Mathf.Clamp01(value);
+			if (_focused)
+			{
+				onFocus?.Invoke();
 
-//			onHoverNormalChanged?.Invoke(_hoverNormal);
-		}
-	}
-	
-	[SerializeField]
-	private float _selectNormal = 0.0f;
-	public float selectNormal
-	{
-		get => _selectNormal;
-		set
-		{
-			_selectNormal = Mathf.Clamp01(value);
+				FillFocusNormal();
+			}
+			else
+			{
+				onDefocus?.Invoke();
 
-//			onSelectNormalChanged?.Invoke(_selectNormal);
+				DrainFocusNormal();
+			}
 		}
 	}
 
@@ -116,102 +132,110 @@ public class Tile : MonoBehaviour
 	public float focusNormal
 	{
 		get => _focusNormal;
-		set
-		{
-			_focusNormal = Mathf.Clamp01(value);
-
-//			onFocusNormalChanged?.Invoke(_focusNormal);
-		}
+		set => _focusNormal = Mathf.Clamp01(value);
 	}
-	
-	public float hoverNormalRate  = 2.0f;
-	public float selectNormalRate = 2.0f;
-	public float focusNormalRate  = 2.0f;
+
+	public float focusNormalRate = 2.0f;
+
+	// Static Actions
+
+	public static Action<Tile, Tile> OnSelectedChanged;
+
+	// Data Actions
 
 	[Tooltip("Invoked when the tile receives its Experience data payload class.")]
 	public Action<Experience> onPopulate;
 
 	// Hover Actions
-	
-	[Tooltip("Invoked when a pointer enters the tile. The hover normal will begin accumulating delta time until it reaches 1.0.")]
-	public Action onHoverInStart;
 
-	[Tooltip("Invoked every frame the hover normal is increased.")]
-	public Action<float> onHoverInFrame;
+	[Tooltip("Invoked whenever the tile is hovered over by a pointer, regardless of hoverNormal.")]
+	public Action onHover;
 
-	[Tooltip("Invoked when the hover normal has reached its maximum value of 1.0.")]
-	public Action onHoverInEnd;
+	[Tooltip("Invoked whenever the tile is hovered over by a pointer & hoverNormal is 0. hoverNormal will begin accumulating delta time until it reaches 1.")]
+	public Action onHoverNormalStart;
 
-	[Tooltip("Invoked when a pointer exits the tile. The hover normal will begin decumulating delta time until it reaches 0.0.")]
-	public Action onHoverOutStart;
-	
-	[Tooltip("Invoked every frame the hover normal is decreased.")]
-	public Action<float> onHoverOutFrame;
+	[Tooltip("Invoked every frame hoverNormal is increased.")]
+	public Action<float> onHoverNormalFrame;
 
-	[Tooltip("Invoked when the hover normal has reached its minimum value of 0.0.")]
-	public Action onHoverOutEnd;
-	
+	[Tooltip("Invoked when hoverNormal has reached its maximum value of 1.")]
+	public Action onHoverNormalComplete;
+
+	// Dehover Actions
+
+	[Tooltip("Invoked when the tile is dehovered, regardless of hoverNormal.")]
+	public Action onDehover;
+
+	[Tooltip("Invoked when the tile is dehovered & hoverNormal is 1. hoverNormal will begin decumulating delta time until it reaches 0.")]
+	public Action onDehoverNormalStart;
+
+	[Tooltip("Invoked every frame hoverNormal is decreased.")]
+	public Action<float> onDehoverNormalFrame;
+
+	[Tooltip("Invoked when hoverNormal has reached its minimum value of 0.")]
+	public Action onDehoverNormalComplete;
+
 	// Select Actions
-	
-	[Tooltip("Invoked when a pointer clicks the tile. The select normal will begin accumulating delta time until it reaches 1.0.")]
-	public Action onSelectInStart;
-	
-	[Tooltip("Invoked every frame the select normal is increased.")]
-	public Action<float> onSelectInFrame;
-	
-	[Tooltip("Invoked when the select normal has reached its maximum value of 1.0.")]
-	public Action onSelectInEnd;
 
-	[Tooltip("Invoked when a different tile has been selected. The select normal will begin decumulating delta time until it reaches 0.0.")]
-	public Action onSelectOutStart;
-	
-	[Tooltip("Invoked every frame the select normal is decreased.")]
-	public Action<float> onSelectOutFrame;
-	
-	[Tooltip("Invoked when the select normal has reached its minimum value of 0.0.")]
-	public Action onSelectOutEnd;
-	
+	[Tooltip("Invoked when the tile is selected, regardless of selectNormal.")]
+	public Action onSelect;
+
+	[Tooltip("Invoked when the tile is selected & selectNormal is 0. SelectNormal will begin accumulating delta time until it reaches 1.")]
+	public Action onSelectNormalStart;
+
+	[Tooltip("Invoked every frame selectNormal is increased.")]
+	public Action<float> onSelectNormalFrame;
+
+	[Tooltip("Invoked when selectNormal has reached its maximum value of 1.")]
+	public Action onSelectNormalComplete;
+
+	// Deselect Actions
+
+	[Tooltip("Invoked when the tile is deselected, regardless of selectNormal.")]
+	public Action onDeselect;
+
+	[Tooltip("Invoked when a different tile has been selected & selectNormal is 1. SelectNormal will begin decumulating delta time until it reaches 0.")]
+	public Action onDeselectNormalStart;
+
+	[Tooltip("Invoked every frame selectNormal is decreased.")]
+	public Action<float> onDeselectNormalFrame;
+
+	[Tooltip("Invoked when selectNormal has reached its minimum value of 0.")]
+	public Action onDeselectNormalComplete;
+
 	// Focus Actions
-	
-	[Tooltip("Invoked when the tile is focused (hovered or selected), whichever happens first. The focus normal will begin accumulating delta time until it reaches 1.0.")]
-	public Action onFocusInStart;
-	
-	[Tooltip("Invoked every frame the focus normal is increased.")]
-	public Action<float> onFocusInFrame;
-	
-	[Tooltip("Invoked when the focus normal has reached its maximum value of 1.0.")]
-	public Action onFocusInEnd;
 
-	[Tooltip("Invoked when the tile is no longer focused (hovered or selected). The focus normal will begin decumulating delta time until it reaches 0.0.")]
-	public Action onFocusOutStart;
-	
-	[Tooltip("Invoked every frame the focus normal is decreased.")]
-	public Action<float> onFocusOutFrame;
-	
-	[Tooltip("Invoked when the focus normal has reached its minimum value of 0.0.")]
-	public Action onFocusOutEnd;
-	
-//	public Action<float> onHoverNormalChanged;
-//	public Action<float> onSelectNormalChanged;
-//	public Action<float> onFocusNormalChanged;
+	[Tooltip("Invoked when the tile is focused (hovered or selected), regardless of focusNormal.")]
+	public Action onFocus;
 
-	//	public Action<float> onDehoverNormalFrame;
-//	public Action<float> onDeselectNormalFrame;
+	[Tooltip("Invoked when the tile is focused (hovered or selected) & focusNormal is 0. FocusNormal will begin accumulating delta time until it reaches 1.")]
+	public Action onFocusNormalStart;
 
-	public const float minWindowSize = 700.0f;
-	public const float maxWindowSize = 1920.0f;
+	[Tooltip("Invoked every frame focusNormal is increased.")]
+	public Action<float> onFocusNormalFrame;
 
-	public const float minBackgroundImageHeight = 1280.0f;
+	[Tooltip("Invoked when focusNormal has reached its maximum value of 1.")]
+	public Action onFocusNormalComplete;
 
-	public const float margin = 25.0f;
+	// Defocus Actions
 
-	public float xPosition;
+	[Tooltip("Invoked when the tile is no longer focused (neither hovered or selected), regardless of focusNormal.")]
+	public Action onDefocus;
 
-//	private const float expandDuration = 0.1666f;
+	[Tooltip("Invoked when the tile is no longer focused (neither hovered or selected) & focusNormal is 1. FocusNormal will begin decumulating delta time until it reaches 0.")]
+	public Action onDefocusNormalStart;
 
-//	private float expandVel;
+	[Tooltip("Invoked every frame focusNormal is decreased.")]
+	public Action<float> onDefocusNormalFrame;
 
-//	public float expandTimer = 0.0f;
+	[Tooltip("Invoked when focusNormal has reached its minimum value of 0.")]
+	public Action onDefocusNormalComplete;
+
+	[Header("Window Size")]
+	public float minWindowSize = 700.0f;
+	public float maxWindowSize = 1920.0f;
+
+//	public float minBackgroundImageWidth  = 1920.0f;
+//	public float minBackgroundImageHeight = 1280.0f;
 
 
 	public void Awake()
@@ -220,290 +244,168 @@ public class Tile : MonoBehaviour
 	}
 
 
-//	[ContextMenu("Click")]
-//	public void OnClick() => Menu.i.currentTile = this;
-
-
-//	public float GetRelativePosition() => _rect.anchoredPosition.x + _rect.sizeDelta.x * 0.5f + Menu.i.margin;
-//	public float GetHalfWidth() => _rect.sizeDelta.x * 0.5f + margin;
-//
-//
-//	public void Arrange()
-//	{
-//		if (!prev) return;
-//
-//		// My x position is the x position of prev plus half of its width and half of my width (and some margin x 2)
-//
-//		xPosition = prev.xPosition + prev.GetHalfWidth() + GetHalfWidth();
-//
-//		_rect.anchoredPosition = new Vector2(x: xPosition,
-//		                                     y: 0.0f);
-//	}
-
-
 	public async Task Populate(Experience e)
 	{
 		gameObject.name = e.title;
 
 		experience = e;
-		
+
 		onPopulate?.Invoke(e);
 	}
 
-
-//	public bool IsFocused => hovered || IsSelected;
-//
-//	public float FocusNormal => Mathf.Max(a: hoverNormal,
-//	                                      b: selectNormal);
 
 	internal static bool NothingSelected =>
 		ReferenceEquals(objA: Selected,
 		                objB: null);
 
-	internal void StartHover()
-	{
-//		if (hovered) return;
 
+	internal void Hover()
+	{
 		hovered = true;
 
-//		HoverIn();
-
 		focused = true;
-
-//		FocusIn();
 	}
 
 
-	internal void EndHover()
+	internal void Dehover()
 	{
-//		if (!hovered) return;
-
 		hovered = false;
-		
-//		HoverOut();
 
 		focused = selected; // The tile may still be focused i.e. it is selected.
-		
-//		if (!focused) FocusOut();
 	}
 
 
 	public void Select()
 	{
-		// Can't be Selected twice!
-
-//		if (selected) return;
-		
 		selected = true;
 
 		focused = true;
-
-		// Tell the old guy he's fired, if he exists
-
-//		if (!NothingSelected) Selected.Deselect();
-
-//		var oldSelected = Selected;
-
-//		Selected = this;
-
-//		onSelect?.Invoke();
-
-//		OnSelectedChanged?.Invoke(arg1: oldSelected,
-//		                          arg2: this);
-
-//		SelectIn();
 	}
 
 
 	public void Deselect()
 	{
-//		onDeselect?.Invoke();
-
 		selected = false;
-		
-//		SelectOut();
 
-		focused  = hovered; // The tile may still be focused i.e. if a pointer is hovering over it.
-
-//		ShrinkSizeHandler();
-
-//		if (!focused) FocusOut();
+		focused = hovered; // The tile may still be focused i.e. if a pointer is hovering over it.
 	}
 
 
-	private async Task HoverIn()
+	private async Task FillHoverNormal()
 	{
-		// Only invoke this event if the normal is truly starting from the start or end
-		// Keeping the naive approach just in case this check causes unexpected behaviour in practise.
-		
-		// onHoverInStart?.Invoke();
-
 		if (Mathf.Approximately(a: hoverNormal,
-		                        b: 0.0f)) onHoverInStart?.Invoke();
+		                        b: 0.0f)) onHoverNormalStart?.Invoke();
 
 		while (hovered && hoverNormal < 1.0f)
 		{
 			hoverNormal += Time.deltaTime * hoverNormalRate;
 
-			onHoverInFrame?.Invoke(hoverNormal);
-			
+			onHoverNormalFrame?.Invoke(hoverNormal);
+
 			await Task.Yield();
 		}
 
 		if (Mathf.Approximately(a: hoverNormal,
-		                        b: 1.0f)) onHoverInEnd?.Invoke();
+		                        b: 1.0f)) onHoverNormalComplete?.Invoke();
 	}
 
 
-	private async Task HoverOut()
+	private async Task DrainHoverNormal()
 	{
-		// Only invoke this event if the normal is truly starting from the start or end
-		// Keeping the naive approach just in case this check causes unexpected behaviour in practise.
-		
-		// onHoverOutStart?.Invoke();
-
 		if (Mathf.Approximately(a: hoverNormal,
-		                        b: 1.0f)) onHoverOutStart?.Invoke();
-		
-		while (!hovered && hoverNormal > 0.0f)
+		                        b: 1.0f)) onDehoverNormalStart?.Invoke();
+
+		while (!hovered &&
+		       hoverNormal > 0.0f)
 		{
 			hoverNormal -= Time.deltaTime * hoverNormalRate;
 
-			onHoverOutFrame?.Invoke(hoverNormal);
+			onDehoverNormalFrame?.Invoke(hoverNormal);
 
 			await Task.Yield();
 		}
-		
-		if (Mathf.Approximately(a: hoverNormal,
-		                        b: 0.0f)) onHoverOutEnd?.Invoke();
-	}
-	
-	private async Task FocusIn()
-	{
-		// Only invoke this event if the normal is truly starting from the start or end
-		// Keeping the naive approach just in case this check causes unexpected behaviour in practise.
-		
-		// onFocusInStart?.Invoke();
 
+		if (Mathf.Approximately(a: hoverNormal,
+		                        b: 0.0f)) onDehoverNormalComplete?.Invoke();
+	}
+
+
+	private async Task FillFocusNormal()
+	{
 		if (Mathf.Approximately(a: focusNormal,
-		                        b: 0.0f)) onFocusInStart?.Invoke();
+		                        b: 0.0f)) onFocusNormalStart?.Invoke();
 
 		while (focused && focusNormal < 1.0f)
 		{
 			focusNormal += Time.deltaTime * focusNormalRate;
 
-			onFocusInFrame?.Invoke(focusNormal);
-			
+			onFocusNormalFrame?.Invoke(focusNormal);
+
 			await Task.Yield();
 		}
-		
+
 		if (Mathf.Approximately(a: focusNormal,
-		                        b: 1.0f)) onFocusInEnd?.Invoke();
+		                        b: 1.0f)) onFocusNormalComplete?.Invoke();
 	}
 
 
-	private async Task FocusOut()
+	private async Task DrainFocusNormal()
 	{
-		// Only invoke this event if the normal is truly starting from the start or end
-		// Keeping the naive approach just in case this check causes unexpected behaviour in practise.
-		
-		// onFocusOutStart?.Invoke();
-
 		if (Mathf.Approximately(a: focusNormal,
-		                        b: 1.0f)) onFocusOutStart?.Invoke();
+		                        b: 1.0f)) onDefocusNormalStart?.Invoke();
 
 		while (!focused &&
 		       focusNormal > 0.0f)
 		{
 			focusNormal -= Time.deltaTime * focusNormalRate;
 
-			onFocusOutFrame?.Invoke(focusNormal);
+			onDefocusNormalFrame?.Invoke(focusNormal);
 
 			await Task.Yield();
 		}
 
 		if (Mathf.Approximately(a: focusNormal,
-		                        b: 0.0f)) onFocusOutEnd?.Invoke();
+		                        b: 0.0f)) onDefocusNormalComplete?.Invoke();
 	}
 
 
-	private async Task SelectIn()
+	private async Task FillSelectNormal()
 	{
-		// Only invoke this event if the normal is truly starting from the start or end
-		// Keeping the naive approach just in case this check causes unexpected behaviour in practise.
-		
-		// onSelectInStart?.Invoke();
-
 		if (Mathf.Approximately(a: selectNormal,
-		                        b: 0.0f)) onSelectInStart?.Invoke();
+		                        b: 0.0f)) onSelectNormalStart?.Invoke();
 
 		while (selected &&
 		       selectNormal < 1.0f)
 		{
 			selectNormal += Time.deltaTime * selectNormalRate;
 
-			onSelectInFrame?.Invoke(selectNormal);
+			onSelectNormalFrame?.Invoke(selectNormal);
 
 			await Task.Yield();
 		}
-		
+
 		if (Mathf.Approximately(a: selectNormal,
-		                        b: 1.0f)) onSelectInEnd?.Invoke();
+		                        b: 1.0f)) onSelectNormalComplete?.Invoke();
 	}
 
 
-	private async Task SelectOut()
+	private async Task DrainSelectNormal()
 	{
-		// Only invoke this event if the normal is truly starting from the start or end
-		// Keeping the naive approach just in case this check causes unexpected behaviour in practise.
-		
-		// onSelectOutStart?.Invoke();
-
 		if (Mathf.Approximately(a: selectNormal,
-		                        b: 1.0f)) onSelectOutStart?.Invoke();
-		
-		while (!selected && selectNormal > 0.0f)
+		                        b: 1.0f)) onDeselectNormalStart?.Invoke();
+
+		while (!selected &&
+		       selectNormal > 0.0f)
 		{
 			selectNormal -= Time.deltaTime * selectNormalRate;
 
-			onSelectOutFrame?.Invoke(selectNormal);
+			onDeselectNormalFrame?.Invoke(selectNormal);
 
 			await Task.Yield();
 		}
-		
-		if (Mathf.Approximately(a: selectNormal,
-		                        b: 0.0f)) onSelectOutEnd?.Invoke();
-	}
 
-//
-//	private async Task ExpandSizeHandler()
-//	{
-//		while (IsSelected && Mathf.Abs(_rect.sizeDelta.x - maxWindowSize) > 0.1f)
-//		{
-//			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
-//			                                                  target: maxWindowSize,
-//			                                                  currentVelocity: ref expandVel,
-//			                                                  smoothTime: expandDuration),
-//			                              y: _rect.sizeDelta.y);
-//
-//			await Task.Yield();
-//		}
-//	}
-//
-//
-//	private async Task ShrinkSizeHandler()
-//	{
-//		while (!IsSelected &&
-//		       Mathf.Abs(_rect.sizeDelta.x - minWindowSize) > 0.1f)
-//		{
-//			_rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: _rect.sizeDelta.x,
-//			                                                  target: minWindowSize,
-//			                                                  currentVelocity: ref expandVel,
-//			                                                  smoothTime: expandDuration),
-//			                              y: _rect.sizeDelta.y);
-//
-//			await Task.Yield();
-//		}
-//	}
+		if (Mathf.Approximately(a: selectNormal,
+		                        b: 0.0f)) onDeselectNormalComplete?.Invoke();
+	}
 
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -25,6 +26,8 @@ public class Menu : MonoBehaviour
 
 	public List<Tile> tiles = new List<Tile>();
 
+	public Action onTransitionStart;
+	
 	private void Awake()
 	{
 		i = this;

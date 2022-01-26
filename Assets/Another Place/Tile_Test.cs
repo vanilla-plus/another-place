@@ -22,28 +22,28 @@ public class Tile_Test : Tile_Element
 		
 		tile.onPopulate   += e => Log($"Tile_Test\t[{tile.experience.title}]\tonPopulate [{e.title}]");
 		
-		tile.onHoverInStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInStart");
-		tile.onHoverInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInFrame\t[{n}]");
-		tile.onHoverInEnd   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInEnd");
+		tile.onHoverNormalStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInStart");
+//		tile.onHoverInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInFrame\t[{n}]");
+		tile.onHoverNormalComplete   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverInEnd");
 		
-		tile.onSelectInStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInStart");
-		tile.onSelectInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInFrame\t[{n}]");
-		tile.onSelectInEnd   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInEnd");
+		tile.onSelectNormalStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInStart");
+//		tile.onSelectInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInFrame\t[{n}]");
+		tile.onSelectNormalComplete   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectInEnd");
 		
-		tile.onFocusInStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusInStart");
-		tile.onFocusInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusInFrame\t[{n}]");
-		tile.onFocusInEnd += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusInEnd");
+		tile.onFocusNormalStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusInStart");
+//		tile.onFocusInFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusInFrame\t[{n}]");
+		tile.onFocusNormalComplete += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusInEnd");
 		
-		tile.onHoverOutStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverOutStart");
-		tile.onHoverOutFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverOutFrame\t[{n}]");
-		tile.onHoverOutEnd   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverOutEnd");
+		tile.onDehoverNormalStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverOutStart");
+//		tile.onHoverOutFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverOutFrame\t[{n}]");
+		tile.onDehoverNormalComplete   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonHoverOutEnd");
 		
-		tile.onSelectOutStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectOutStart");
-		tile.onSelectOutFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectOutFrame\t[{n}]");
-		tile.onSelectOutEnd   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectOutEnd");
+		tile.onDeselectNormalStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectOutStart");
+//		tile.onSelectOutFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectOutFrame\t[{n}]");
+		tile.onDeselectNormalComplete   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonSelectOutEnd");
 		
-		tile.onFocusOutStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusOutStart");
-		tile.onFocusOutFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusOutFrame\t[{n}]");
-		tile.onFocusOutEnd   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusOutEnd");
+		tile.onDefocusNormalStart += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusOutStart");
+//		tile.onFocusOutFrame += n => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusOutFrame\t[{n}]");
+		tile.onDefocusNormalComplete   += () => Log($"Tile_Test\t[{tile.experience.title}]\tonFocusOutEnd");
 	}
 }

@@ -1,5 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+
+using CurvedUI;
+
+using TMPro;
+
 using UnityEngine;
 
 using Vanilla.Easing;
@@ -10,6 +15,8 @@ public class Tile_Title : Tile_Element
 	public RectTransform rect;
 	public CanvasGroup   group;
 
+	public CurvedUITMP text;
+	
 	private float hoverNormal;
 	private float selectNormal;
 
@@ -29,16 +36,26 @@ public class Tile_Title : Tile_Element
 		if (!group) group = GetComponent<CanvasGroup>();
 		if (!rect) rect   = (RectTransform)transform;
 
-		tile.onFocusInStart  += () => group.gameObject.SetActive(true);
-		tile.onFocusInFrame  += FadeText;
-		tile.onFocusOutFrame += FadeText;
-		tile.onFocusOutEnd   += () => group.gameObject.SetActive(false);
+		var text = GetComponent<TextMeshProUGUI>();
+		
+//		var curvedText = GetComponent<CurvedUITMP>();
 
-		tile.onSelectInFrame  += MoveText;
-		tile.onSelectOutFrame += MoveText;
+		tile.onPopulate += e =>
+		                   {
+			                   text.text        = e.title;
+//			                   curvedText.Dirty = true;
+		                   };
+		
+		tile.onFocusNormalStart  += () => group.gameObject.SetActive(true);
+		tile.onFocusNormalFrame  += FadeText;
+		tile.onDefocusNormalFrame += FadeText;
+		tile.onDefocusNormalComplete   += () => group.gameObject.SetActive(false);
 
-		tile.onSelectInFrame  += ScaleText;
-		tile.onSelectOutFrame += ScaleText;
+		tile.onSelectNormalFrame  += MoveText;
+		tile.onDeselectNormalFrame += MoveText;
+
+		tile.onSelectNormalFrame  += ScaleText;
+		tile.onDeselectNormalFrame += ScaleText;
 
 //		tile.onSelectNormalChanged += n =>
 //		                            {

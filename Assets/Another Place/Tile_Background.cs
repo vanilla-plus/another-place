@@ -12,6 +12,11 @@ public class Tile_Background : Tile_Element
 
 	public Image background;
 
+	public bool enforceMinimumImageSize = true;
+
+	public float minWidth = 1920.0f;
+	public float minHeight = 1280.0f;
+	
 	public float hoverZoomScale = 1.1f;
 
 	public static Color normalColor = Color.white;
@@ -27,22 +32,27 @@ public class Tile_Background : Tile_Element
 
 		tile.onPopulate += HandlePopulate;
 
-		tile.onFocusInFrame += ScaleBackground;
-		tile.onFocusInFrame += TintBackground;
+		tile.onFocusNormalFrame += ScaleBackground;
+		tile.onFocusNormalFrame += TintBackground;
 
-		tile.onFocusOutFrame += ScaleBackground;
-		tile.onFocusOutFrame += TintBackground;
+		tile.onDefocusNormalFrame += ScaleBackground;
+		tile.onDefocusNormalFrame += TintBackground;
 	}
 
 
 	private void HandlePopulate(Experience e)
 	{
-		var   s = e.sprite;
-		float w = s.texture.width;
-		float h = s.texture.height;
+		var s = e.sprite;
 
-		if (w < Tile.maxWindowSize) w            = Tile.maxWindowSize;
-		if (h < Tile.minBackgroundImageHeight) h = Tile.minBackgroundImageHeight;
+		var w = enforceMinimumImageSize ?
+			        Mathf.Max(a: s.texture.width,
+			                  b: minWidth) :
+			        s.texture.width;
+
+		var h = enforceMinimumImageSize ?
+			        Mathf.Max(a: s.texture.height,
+			                  b: minHeight) :
+			        s.texture.height;
 
 		rect.sizeDelta = new Vector2(x: w,
 		                             y: h);
