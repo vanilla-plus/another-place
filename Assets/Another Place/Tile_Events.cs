@@ -14,18 +14,13 @@ public class Tile_Events : Tile_Element,
 	public override void Awake()
 	{
 		base.Awake();
-		
-//		tile.onBecameSelected += () =>
-//		                         {
-//			                         background.raycastTarget = false;
-//		                         };
-//
-//		tile.onBecameDeselected += () =>
-//		                           {
-//			                           background.raycastTarget = true;
-//		                           };
+
+		tile.onSelect += () => background.raycastTarget = false;
+
+		tile.onDeselect += () => background.raycastTarget = true;
 	}
-	
+
+
 	public void OnPointerEnter(PointerEventData eventData) => tile.Hover();
 
 	public void OnPointerExit(PointerEventData eventData) => tile.Dehover();
