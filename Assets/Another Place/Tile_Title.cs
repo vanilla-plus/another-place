@@ -4,12 +4,15 @@ using UnityEngine;
 
 using Vanilla.Easing;
 
-public class Tile_Title : MonoBehaviour
+public class Tile_Title : Tile_Element
 {
+
+	public RectTransform rect;
+	public CanvasGroup   group;
 
 	private float hoverNormal;
 	private float selectNormal;
-	
+
 	private float totalAlpha;
 
 	public float minHeight = 0.0f;
@@ -17,38 +20,46 @@ public class Tile_Title : MonoBehaviour
 
 	public float scaleMin = 1.0f;
 	public float scaleMax = 1.2f;
-	
-	private void Awake()
+
+
+	public override void Awake()
 	{
-		var rect = (RectTransform)transform;
-		var tile = GetComponentInParent<Tile>();
-		var c    = GetComponent<CanvasGroup>();
+		base.Awake();
 
-		tile.onSelectNormalFrame += n =>
-		                            {
-			                            selectNormal = n.InOutQuadratic();
+		if (!group) group = GetComponent<CanvasGroup>();
+		if (!rect) rect   = (RectTransform)transform;
 
-			                            var h = Mathf.Lerp(a: minHeight,
-			                                               b: maxHeight,
-			                                               t: selectNormal);
+		tile.onFocusInStart  += () => group.gameObject.SetActive(true);
+		tile.onFocusInFrame  += FadeText;
+		tile.onFocusOutFrame += FadeText;
+		tile.onFocusOutEnd   += () => group.gameObject.SetActive(false);
 
-			                            rect.anchoredPosition = new Vector2(x: 0,
-			                                                                y: h);
-			                            
-			                            c.alpha = hoverNormal + selectNormal;
+		tile.onSelectInFrame  += MoveText;
+		tile.onSelectOutFrame += MoveText;
 
-			                            rect.localScale = Vector3.one *
-			                                              Mathf.Lerp(a: scaleMin,
-			                                                         b: scaleMax,
-			                                                         t: selectNormal);
-		                            };
+		tile.onSelectInFrame  += ScaleText;
+		tile.onSelectOutFrame += ScaleText;
 
-		tile.onHoverNormalFrame += n =>
-		                           {
-			                           hoverNormal = n.InOutQuadratic();
+//		tile.onSelectNormalChanged += n =>
+//		                            {
+//			                            selectNormal = n.InOutQuadratic();
+//
+//			                            var h = Mathf.Lerp(a: minHeight,
+//			                                               b: maxHeight,
+//			                                               t: selectNormal);
+//
+//			                            rect.anchoredPosition = new Vector2(x: 0,
+//			                                                                y: h);
+//			                            
+//			                            group.alpha = hoverNormal + selectNormal;
+//
+//			                            rect.localScale = Vector3.one *
+//			                                              Mathf.Lerp(a: scaleMin,
+//			                                                         b: scaleMax,
+//			                                                         t: selectNormal);
+//		                            };
 
-			                           c.alpha = hoverNormal + selectNormal;
-		                           };
+//		tile.onFocusNormalChanged += n => c.alpha = n.InOutQuadratic();
 //		
 //		tile.onSelectNormalFrame += n =>
 //		                            {
@@ -56,5 +67,20 @@ public class Tile_Title : MonoBehaviour
 //			                            c.alpha = hoverNormal + selectNormal;
 //		                            };
 	}
-	
+
+
+	private void FadeText(float n) => group.alpha = n.InOutQuadratic();
+
+
+	private void MoveText(float n) => rect.anchoredPosition = new Vector2(x: 0,
+	                                                                      y: Mathf.Lerp(a: minHeight,
+	                                                                                    b: maxHeight,
+	                                                                                    t: n.InOutQuadratic()));
+
+
+	private void ScaleText(float n) => rect.localScale = Vector3.one *
+	                                                     Mathf.Lerp(a: scaleMin,
+	                                                                b: scaleMax,
+	                                                                t: n.InOutQuadratic());
+
 }

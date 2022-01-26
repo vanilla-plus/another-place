@@ -1,15 +1,14 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 using Vanilla.Easing;
 
-public class Tile_Background : MonoBehaviour
+public class Tile_Background : Tile_Element
 {
 
-	public Tile tile;
-
-	public RectTransform backgroundRect;
+	public RectTransform rect;
 
 	public Image background;
 
@@ -22,79 +21,44 @@ public class Tile_Background : MonoBehaviour
 	                                           a: 1.0f);
 
 
-	void Awake()
+	public override void Awake()
 	{
-		
-		
-//		tile.onBecameSelected += () => background.raycastTarget = false;
-//
-//		tile.onBecameSelected += () => background.raycastTarget = true;
+		base.Awake();
 
-		tile.onHoverNormalFrame += HandleHoverFrame;
+		tile.onPopulate += HandlePopulate;
 
-		tile.onDehoverNormalFrame += HandleDehoverFrame;
+		tile.onFocusInFrame += ScaleBackground;
+		tile.onFocusInFrame += TintBackground;
 
-		tile.onDeselectNormalFrame += HandleHoverFrame;
-
-//		tile.onSelectNormalFrame += HandleHoverFrame;
-//
-//		tile.onDeselectNormalFrame += HandleHoverFrame;
-
-//		tile.onSelectNormalFrame += n =>
-//		                            {
-//			                            // Only proceed if the tile is becoming selected
-//
-//			                            if (!tile.IsSelected) return;
-//
-//			                            background.color = Color.Lerp(a: Color.black,
-//			                                                          b: Color.white,
-//			                                                          t: Mathf.Lerp(a: 1.0f,
-//			                                                                        b: fadeEffect,
-//			                                                                        t: n));
-//		                            };
+		tile.onFocusOutFrame += ScaleBackground;
+		tile.onFocusOutFrame += TintBackground;
 	}
 
 
-//	public void Update()
-//	{
-//		if (tile.hovered || tile.IsSelected)
-//		{
-//			
-//		}
-//		else
-//		{
-//			
-//		}
-//	}
-
-	
-
-	private void HandleHoverFrame(float n)
+	private void HandlePopulate(Experience e)
 	{
-		n = tile.hoverNormal.InOutQuadratic();
+		var   s = e.sprite;
+		float w = s.texture.width;
+		float h = s.texture.height;
 
-		var z = Mathf.Lerp(a: 1.0f,
-		                   b: hoverZoomScale,
-		                   t: n);
+		if (w < Tile.maxWindowSize) w            = Tile.maxWindowSize;
+		if (h < Tile.minBackgroundImageHeight) h = Tile.minBackgroundImageHeight;
 
-		backgroundRect.localScale = z * Vector3.one;
+		rect.sizeDelta = new Vector2(x: w,
+		                             y: h);
 
-		// Stop here if the tile is selected and no longer hovered
-
-//		if (tile.IsSelected &&
-//		    !tile.hovered) return;
-
-		background.color = Color.Lerp(a: normalColor,
-		                              b: hoverColor,
-		                              t: n);
+		background.sprite = s;
 	}
 
-//
-	private void HandleDehoverFrame(float n)
-	{
-		if (tile.IsSelected) return;
 
-		HandleHoverFrame(n);
-	}
+	private void ScaleBackground(float n) => rect.localScale = Mathf.Lerp(a: 1.0f,
+	                                                                      b: hoverZoomScale,
+	                                                                      t: n.InOutQuadratic()) *
+	                                                           Vector3.one;
+
+
+	private void TintBackground(float n) => background.color = Color.Lerp(a: normalColor,
+	                                                                      b: hoverColor,
+	                                                                      t: n.InOutQuadratic());
 
 }

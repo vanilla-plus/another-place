@@ -62,7 +62,11 @@ public class Menu : MonoBehaviour
 			await newTile.Populate(e);
 		}
 
-		tiles[0].TrySelect();
+//		Time.timeScale = 0.1f;
+
+		await Task.Yield(); // Give it a frame for scripts to init
+
+		tiles[0].Select();
 		
 		enabled = true;
 		

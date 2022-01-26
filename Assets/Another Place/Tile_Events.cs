@@ -2,34 +2,34 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class Tile_Events : MonoBehaviour,
+public class Tile_Events : Tile_Element,
                            IPointerEnterHandler,
                            IPointerExitHandler,
                            IPointerClickHandler
 {
 
-	public Tile tile;
-
 	public Image background;
 
 
-	void Awake()
+	public override void Awake()
 	{
-		tile.onBecameSelected += () =>
-		                         {
-			                         background.raycastTarget = false;
-		                         };
-
-		tile.onBecameDeselected += () =>
-		                           {
-			                           background.raycastTarget = true;
-		                           };
+		base.Awake();
+		
+//		tile.onBecameSelected += () =>
+//		                         {
+//			                         background.raycastTarget = false;
+//		                         };
+//
+//		tile.onBecameDeselected += () =>
+//		                           {
+//			                           background.raycastTarget = true;
+//		                           };
 	}
 	
-	public void OnPointerEnter(PointerEventData eventData) => tile.HoverStart();
+	public void OnPointerEnter(PointerEventData eventData) => tile.StartHover();
 
-	public void OnPointerExit(PointerEventData eventData) => tile.HoverEnd();
+	public void OnPointerExit(PointerEventData eventData) => tile.EndHover();
 
-	public void OnPointerClick(PointerEventData eventData) => tile.TrySelect();
+	public void OnPointerClick(PointerEventData eventData) => tile.Select();
 
 }
