@@ -19,7 +19,7 @@ public class Tile : MonoBehaviour
 
 	public Experience experience;
 
-//	public bool requiresArranging = false;
+	public bool dirty = false;
 	
 	[Header("Hover state")]
 	public Tile_State hover = new Tile_State();

@@ -27,6 +27,8 @@ public class Menu : MonoBehaviour
 
 	public RectTransform tileParent;
 
+	public bool arranging;
+	
 	public List<Tile> tiles = new List<Tile>();
 
 	public Action onTransitionStart;
@@ -77,13 +79,17 @@ public class Menu : MonoBehaviour
 //		tiles[0].Select();
 		
 		enabled = true;
+
+//		await Task.Delay(1000);
+
+		ArrangeTileLayout();
 	}
 
 
-	void Update()
-	{
-		foreach (var t in tiles) t.layout.Arrange();
-	}
+//	void Update()
+//	{
+//		foreach (var t in tiles) t.layout.Arrange();
+//	}
 
 	private async void TileSelectedHandler(Tile outgoing,
 	                                       Tile incoming)
@@ -106,14 +112,31 @@ public class Menu : MonoBehaviour
 		}
 	}
 	
-//	public async void ArrangeTileLayout()
-//	{
-//		while (tiles.Any(t => t.requiresArranging))
+	public async void ArrangeTileLayout()
+	{
+		if (arranging) return;
+		
+		arranging = true;
+		
+		Debug.Log("I have started arranging the tiles.");
+
+		do
+		{
+			foreach (var t in tiles) t.layout.Arrange();
+
+			await Task.Yield();
+		} while (tiles.Any(t => t.dirty));
+		
+//		while (tiles.Any(t => t.dirty))
 //		{
 //			foreach (var t in tiles) t.layout.Arrange();
-//			
+//
 //			await Task.Yield();
 //		}
-//	}
+
+		Debug.Log("I have stopped arranging the tiles.");
+
+		arranging = false;
+	}
 	
 }

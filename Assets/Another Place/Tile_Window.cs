@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 using UnityEngine;
 
+using Vanilla.Easing;
+
 using static UnityEngine.Debug;
 
 public class Tile_Window : Tile_Element
@@ -11,79 +13,46 @@ public class Tile_Window : Tile_Element
 
 	public RectTransform rect;
 
-	private const float expandDuration = 0.1666f;
-
-	private float expandVel;
-
 	public override void Awake()
 	{
 		base.Awake();
 
-		tile.@select.onActive   += ExpandSizeHandler;
-		tile.@select.onInactive += ShrinkSizeHandler;
-
-		// As suspected, the Mathf.Approx check in SelectIn is accidentally guarding this from firing.
-		// It's actually pretty easily fixed, you just need a new Action for "onClick", normals be damned.
-		// Reconnect this callback to that new Action instead.
-		
-	}
-
-	private async void ExpandSizeHandler()
-	{
-		#if DEBUG
-		Log($"[{tile.experience.title}] Expand Start");
-		#endif
-		
-		while (tile.@select.active &&
-		       Mathf.Abs(rect.sizeDelta.x - tile.maxWindowSize) > 0.1f)
+		tile.select.onActiveNormalStart += () =>
 		{
-			#if DEBUG
-			Log($"[{tile.experience.title}] Expand Frame");
-			#endif
+			tile.dirty = true;
 
-			rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: rect.sizeDelta.x,
-			                                                 target: tile.maxWindowSize,
-			                                                 currentVelocity: ref expandVel,
-			                                                 smoothTime: expandDuration),
-			                             y: rect.sizeDelta.y);
+			Menu.i.ArrangeTileLayout();
+		};
 
-			await Task.Yield();
-		}
+		tile.select.onInactiveNormalStart += () =>
+		{
+			tile.dirty = true;
+			
+			Menu.i.ArrangeTileLayout();
+		};
+
+		tile.select.onActiveNormalComplete += () => tile.dirty = false;
 		
-		#if DEBUG
-		if (!tile.selected) LogWarning($"[{tile.experience.title}] Expand Interrupted! This tile was de-selected?");
+		tile.select.onInactiveNormalComplete += () => tile.dirty = false;
+		
+		tile.select.onActiveNormalFrame += SizeFrameHandler;
+		tile.select.onInactiveNormalFrame += SizeFrameHandler;
 
-		Log($"[{tile.experience.title}] Expand End");
-		#endif
 	}
+
+	public void SizeFrameHandler(float n) => rect.sizeDelta =
+		new Vector2(Mathf.Lerp(tile.minWindowSize, tile.maxWindowSize, InOutQuadratic(n)), rect.sizeDelta.y);
 	
-	private async void ShrinkSizeHandler()
+	public float InOutQuadratic
+	(
+		float t)
 	{
-		#if DEBUG
-		Log($"[{tile.experience.title}] Shrink Start");
-		#endif
+		var m = t - 1;
 
-		while (!tile.@select.active &&
-		       Mathf.Abs(rect.sizeDelta.x - tile.minWindowSize) > 0.1f)
-		{
-			#if DEBUG
-			Log($"[{tile.experience.title}] Shrink Frame");
-			#endif
+		var p = t * 2;
 
-			rect.sizeDelta = new Vector2(x: Mathf.SmoothDamp(current: rect.sizeDelta.x,
-			                                                 target: tile.minWindowSize,
-			                                                 currentVelocity: ref expandVel,
-			                                                 smoothTime: expandDuration),
-			                             y: rect.sizeDelta.y);
+		if (p < 1) return t * p;
 
-			await Task.Yield();
-		}
-
-		#if DEBUG
-		if (tile.selected) LogWarning($"[{tile.experience.title}] Shrink Interrupted! This tile was re-selected?");
-
-		Log($"[{tile.experience.title}] Shrink End");
-		#endif
+		return 1 - m * m * 2;
 	}
-
 }
