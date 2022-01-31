@@ -34,11 +34,11 @@ public class Tile_Background : Tile_Element
 
 		tile.onPopulate += HandlePopulate;
 
-		tile.onFocusNormalFrame += ScaleBackground;
-		tile.onFocusNormalFrame += TintBackground;
+		tile.focus.onActiveNormalFrame += ScaleBackground;
+		tile.focus.onActiveNormalFrame += TintBackground;
 
-		tile.onDefocusNormalFrame += ScaleBackground;
-		tile.onDefocusNormalFrame += TintBackground;
+		tile.focus.onInactiveNormalFrame += ScaleBackground;
+		tile.focus.onInactiveNormalFrame += TintBackground;
 	}
 
 

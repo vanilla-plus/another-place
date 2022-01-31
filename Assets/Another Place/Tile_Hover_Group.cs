@@ -15,15 +15,15 @@ public class Tile_Hover_Group : Tile_Element
 	{
 		base.Awake();
 
-		tile.onHoverNormalStart += () => group.gameObject.SetActive(true);
+		tile.hover.onActiveNormalStart += () => group.gameObject.SetActive(true);
 
-		tile.onHoverNormalFrame   += FadeGroup;
-		tile.onDehoverNormalFrame += FadeGroup;
+		tile.hover.onActiveNormalFrame   += FadeGroup;
+		tile.hover.onInactiveNormalFrame += FadeGroup;
 
-		tile.onHoverNormalFrame   += ScaleGroup;
-		tile.onDehoverNormalFrame += ScaleGroup;
+		tile.hover.onActiveNormalFrame   += ScaleGroup;
+		tile.hover.onInactiveNormalFrame += ScaleGroup;
 
-		tile.onDehoverNormalComplete += () => group.gameObject.SetActive(false);
+		tile.hover.onInactiveNormalComplete += () => group.gameObject.SetActive(false);
 	}
 
 

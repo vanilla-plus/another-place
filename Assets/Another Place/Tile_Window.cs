@@ -19,8 +19,8 @@ public class Tile_Window : Tile_Element
 	{
 		base.Awake();
 
-		tile.onSelect   += ExpandSizeHandler;
-		tile.onDeselect += ShrinkSizeHandler;
+		tile.@select.onActive   += ExpandSizeHandler;
+		tile.@select.onInactive += ShrinkSizeHandler;
 
 		// As suspected, the Mathf.Approx check in SelectIn is accidentally guarding this from firing.
 		// It's actually pretty easily fixed, you just need a new Action for "onClick", normals be damned.
@@ -34,7 +34,7 @@ public class Tile_Window : Tile_Element
 		Log($"[{tile.experience.title}] Expand Start");
 		#endif
 		
-		while (tile.selected &&
+		while (tile.@select.active &&
 		       Mathf.Abs(rect.sizeDelta.x - tile.maxWindowSize) > 0.1f)
 		{
 			#if DEBUG
@@ -63,7 +63,7 @@ public class Tile_Window : Tile_Element
 		Log($"[{tile.experience.title}] Shrink Start");
 		#endif
 
-		while (!tile.selected &&
+		while (!tile.@select.active &&
 		       Mathf.Abs(rect.sizeDelta.x - tile.minWindowSize) > 0.1f)
 		{
 			#if DEBUG

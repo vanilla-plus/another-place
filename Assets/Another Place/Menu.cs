@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using SimpleJSON;
@@ -33,7 +34,7 @@ public class Menu : MonoBehaviour
 	private void Awake()
 	{
 		i = this;
-		
+
 		_x = 0.0f;
 
 		Tile.OnSelectedChanged += TileSelectedHandler;
@@ -104,5 +105,15 @@ public class Menu : MonoBehaviour
 			await Task.Yield();
 		}
 	}
-
+	
+//	public async void ArrangeTileLayout()
+//	{
+//		while (tiles.Any(t => t.requiresArranging))
+//		{
+//			foreach (var t in tiles) t.layout.Arrange();
+//			
+//			await Task.Yield();
+//		}
+//	}
+	
 }

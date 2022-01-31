@@ -15,15 +15,15 @@ public class Tile_Select_Group : Tile_Element
 	{
 		base.Awake();
 
-		tile.onSelectNormalStart += () => group.gameObject.SetActive(true);
+		tile.select.onActiveNormalStart += () => group.gameObject.SetActive(true);
 
-		tile.onSelectNormalFrame   += FadeGroup;
-		tile.onDeselectNormalFrame += FadeGroup;
+		tile.select.onActiveNormalFrame += FadeGroup;
+		tile.@select.onInactiveNormalFrame += FadeGroup;
 
-		tile.onSelectNormalFrame   += ScaleGroup;
-		tile.onDeselectNormalFrame += ScaleGroup;
+		tile.@select.onActiveNormalFrame   += ScaleGroup;
+		tile.@select.onInactiveNormalFrame += ScaleGroup;
 
-		tile.onDeselectNormalComplete += () => group.gameObject.SetActive(false);
+		tile.@select.onInactiveNormalComplete += () => group.gameObject.SetActive(false);
 	}
 
 

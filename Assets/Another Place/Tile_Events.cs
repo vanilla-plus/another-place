@@ -15,9 +15,9 @@ public class Tile_Events : Tile_Element,
 	{
 		base.Awake();
 
-		tile.onSelect += () => background.raycastTarget = false;
+		tile.@select.onActive += () => background.raycastTarget = false;
 
-		tile.onDeselect += () => background.raycastTarget = true;
+		tile.@select.onInactive += () => background.raycastTarget = true;
 	}
 
 

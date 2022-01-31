@@ -474,15 +474,18 @@ MonoBehaviour:
     remoteByteSizeString: 
     localByteSize: 0
     localByteSizeString: 
-  _hovered: 0
-  _hoverNormal: 0
-  hoverNormalRate: 2
-  _selected: 0
-  _selectNormal: 0
-  selectNormalRate: 2
-  _focused: 0
-  _focusNormal: 0
-  focusNormalRate: 2
+  hover:
+    _active: 0
+    _normal: 0
+    normalRate: 2
+  select:
+    _active: 0
+    _normal: 0
+    normalRate: 2
+  focus:
+    _active: 0
+    _normal: 0
+    normalRate: 2
   minWindowSize: 700
   maxWindowSize: 1920
 --- !u!114 &8080424286100151750
@@ -521,7 +524,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3722410134678540806}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d8eab2093c5975144997389122c65cea, type: 3}
   m_Name: 
