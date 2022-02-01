@@ -4,9 +4,13 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
+using Amazon;
+using Amazon.CognitoIdentity;
 using Amazon.DynamoDBv2.Model;
+using Amazon.S3;
+using Amazon.S3.Transfer;
 
-using AWS;
+//using AWS;
 
 using SimpleJSON;
 
@@ -114,7 +118,28 @@ public static class Place
 
 	public static Action<JSONArray> onCatalogueFetched;
 
-	
+	// AWS S3 Credentials
+
+	public class S3
+	{
+
+		internal const string c_S3BucketName = "mhoplaceappcontent";
+
+		private const string identityPoolId = "ap-southeast-2:b5d45675-818f-4635-86c6-c8f3915280c2";
+
+		internal static readonly RegionEndpoint regionEndpoint = RegionEndpoint.APSoutheast2;
+
+		private static readonly CognitoAWSCredentials credentials = new CognitoAWSCredentials(identityPoolId: identityPoolId,
+		                                                                                      region: regionEndpoint);
+
+		internal static readonly AmazonS3Client client = new AmazonS3Client(credentials: credentials,
+		                                                                    region: regionEndpoint);
+
+		internal static readonly TransferUtility transferUtility = new TransferUtility(s3Client: client);
+
+	}
+
+
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 	private static async void PreSceneInitialize()
 	{
@@ -220,9 +245,9 @@ public static class Place
 		
 		// Fetch thumbnails and wait until it's done.
 
-		FetchThumbnails();
+		await FetchThumbnails();
 		
-		while (!_ThumbnailsFetched) await Task.Delay(500);
+//		while (!_ThumbnailsFetched) await Task.Delay(500);
 		
 		// Fetch remote config and wait until it's done.
 		
@@ -233,22 +258,21 @@ public static class Place
 		_CatalogueFetched = true;
 	}
 	
-	private static void FetchThumbnails()
+	private static async Task FetchThumbnails()
 	{
 		_ThumbnailsFetched = false;
 
 		Log($"Beginning thumbnail fetch from\n{Paths.Remote.Thumbnails}\nto\n{Paths.Local.Thumbnails}");
 		
-		var d = new S3.Download(Paths.Local.Thumbnails,
-		                        Paths.Remote.Thumbnails);
+		var d = S3.transferUtility.DownloadDirectoryAsync(bucketName: S3.c_S3BucketName,
+		                                                  s3Directory: Paths.Remote.Thumbnails,
+		                                                  localDirectory: Paths.Local.Thumbnails);
 
-		d.onDownloadProgress += (sender,
-		                         args) =>
-		                        {
-			                        _ThumbnailsFetched = args.isDone;
-			                        
-			                        if (_ThumbnailsFetched) Log("Thumbnail fetch complete.");
-		                        };
+		await d;
+
+		_ThumbnailsFetched = d.IsCompleted;
+
+		Log($"Thumbnail fetch completed - [{_ThumbnailsFetched}]");
 	}
 
 	private static void FetchRemoteConfig()

@@ -2,11 +2,11 @@
 
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
-using AWS;
-
-using JetBrains.Annotations;
+using Amazon.S3.Model;
+using Amazon.S3.Transfer;
 
 using SimpleJSON;
 
@@ -28,6 +28,7 @@ public class Experience
 {
 
 	public JSONNode node;
+	
 
 	private const string c_MaleOnboardingFileName   = "male-onboarding.mp3";
 	private const string c_MaleBeginnerFileName     = "male-beginner.mp3";
@@ -82,8 +83,6 @@ public class Experience
 	[SerializeField]
 	public string FemaleExpertPath = string.Empty;
 
-	public S3.Download download;
-
 	public ulong  remoteByteSize;
 	public string remoteByteSizeString;
 	
@@ -101,20 +100,44 @@ public class Experience
 
 	public Action<bool> onContentAvailabilityChange;
 
+	// S3 downloading
+	
+
+	
+	private CancellationTokenSource _cancellationTokenSource;
+	
+	[Header(header: "Current download status")]
+
+	[SerializeField]
+	private bool _downloading = false;
+	public bool Downloading => _downloading;
+
+	[SerializeField] private bool downloadCompleted = false;
+	[SerializeField] private bool downloadCancelled = false;
+	[SerializeField] private bool downloadFaulted   = false;
+	
+	public int    downloadTotalNumberOfFiles               = -1;
+	public int    downloadNumberOfFilesDownloaded          = -1;
+	public long   downloadTotalBytes                       = -1;
+	public long   downloadTransferredBytes                 = -1;
+	public string downloadCurrentFile                      = string.Empty;
+	public long   downloadTransferredBytesForCurrentFile   = -1;
+	public long   downloadTotalNumberOfBytesForCurrentFile = -1;
+
 	public Experience(JSONNode node)
 	{
 		this.node        = node;
 		
-		title       = node["Title"].Value;
-		description = node["Description"].Value;
-		duration    = node["Duration"].Value;
-		basePath    = node["basePath"].Value;
-		videoFormat = node["Format"].Value;
+		title       = node[aKey: "Title"].Value;
+		description = node[aKey: "Description"].Value;
+		duration    = node[aKey: "Duration"].Value;
+		basePath    = node[aKey: "basePath"].Value;
+		videoFormat = node[aKey: "Format"].Value;
 
 		EpisodeNameLower = title.ToLower();
 		EpisodeSubpath   = Paths.Slash + EpisodeNameLower;
 		
-		Log("Experience found! " + title);
+		Log(message: "Experience found! " + title);
 
 		LocalPath              = Paths.Local.Root       + EpisodeSubpath;
 		RemotePath             = Paths.Remote.Root      + EpisodeSubpath;
@@ -141,16 +164,16 @@ public class Experience
 
 	private void LoadThumbnail()
 	{
-		if (!File.Exists(ThumbnailPath))
+		if (!File.Exists(path: ThumbnailPath))
 		{
-			LogError($"Local thumbnail file not found for [{title}]. It was expected at the following path:\n{ThumbnailPath}");
+			LogError(message: $"Local thumbnail file not found for [{title}]. It was expected at the following path:\n{ThumbnailPath}");
 
 			return;
 		}
 
-		var thumbnailBytes = File.ReadAllBytes(ThumbnailPath);
+		var thumbnailBytes = File.ReadAllBytes(path: ThumbnailPath);
 
-		thumbnail.LoadImage(thumbnailBytes);
+		thumbnail.LoadImage(data: thumbnailBytes);
 
 		sprite = Sprite.Create(texture: thumbnail,
 		                       rect: new Rect(x: 0,
@@ -167,17 +190,17 @@ public class Experience
 
 	public void UpdateLocalByteSize()
 	{
-		localByteSize = Directory.Exists(LocalPath) ? (ulong)GetSizeOfDirectory(new DirectoryInfo(LocalPath)) : 0;
+		localByteSize = Directory.Exists(path: LocalPath) ? (ulong)GetSizeOfDirectory(input: new DirectoryInfo(path: LocalPath)) : 0;
 
 		localByteSizeString = localByteSize.AsDataSize();
 		
-		Log($"Local byte size updated for [{title}] - [{localByteSizeString}]");
+		Log(message: $"Local byte size updated for [{title}] - [{localByteSizeString}]");
 
-		onLocalByteSizeUpdate?.Invoke(localByteSizeString);
+		onLocalByteSizeUpdate?.Invoke(obj: localByteSizeString);
 	}
 
 
-	public long GetSizeOfDirectory(DirectoryInfo input) => input.GetFiles().Sum(file => file.Length) + input.GetDirectories().Sum(GetSizeOfDirectory);
+	public long GetSizeOfDirectory(DirectoryInfo input) => input.GetFiles().Sum(selector: file => file.Length) + input.GetDirectories().Sum(selector: GetSizeOfDirectory);
 
 	public string GetDownloadRequirement => (remoteByteSize - localByteSize).AsDataSize();
 	
@@ -186,66 +209,114 @@ public class Experience
 	public async Task UpdateRemoteByteSize()
 	{
 		remoteByteSize = 0;
-		
-		var result = await S3.ListObjectsV2Async(EpisodeNameLower);
+
+		//		var result = await S3.ListObjectsV2Async(key: EpisodeNameLower);
+
+		var result = await S3.client.ListObjectsV2Async(new ListObjectsV2Request
+		                                                {
+			                                                BucketName = S3.c_S3BucketName,
+			                                                Prefix     = EpisodeNameLower
+		                                                });
 
 		var remoteObjectCount = result.S3Objects.Count;
 		
-		Log($"Found [{remoteObjectCount}] remote objects for [{EpisodeNameLower}]");
+		Log(message: $"Found [{remoteObjectCount}] remote objects for [{EpisodeNameLower}]");
 
 		if (remoteObjectCount == 0) return;		
 		
-		var output = result.S3Objects.Sum(o => o.Size);
+		var output = result.S3Objects.Sum(selector: o => o.Size);
 
 		remoteByteSize = (ulong)output;
 
 		remoteByteSizeString = remoteByteSize.AsDataSize();
 		
-		Log($"Remote byte size updated for [{title}] - [{remoteByteSizeString}]");
+		Log(message: $"Remote byte size updated for [{title}] - [{remoteByteSizeString}]");
 		
-		onRemoteByteSizeUpdate?.Invoke(remoteByteSizeString);
+		onRemoteByteSizeUpdate?.Invoke(obj: remoteByteSizeString);
 	}
 
 
-	public void UpdateContentAvailability() => onContentAvailabilityChange?.Invoke(ContentFullyDownloaded);
+	public void UpdateContentAvailability() => onContentAvailabilityChange?.Invoke(obj: ContentFullyDownloaded);
 
-	public void UpdateDownloadRequirementText() => onDownloadRequirementUpdate?.Invoke(GetDownloadRequirement);
+	public void UpdateDownloadRequirementText() => onDownloadRequirementUpdate?.Invoke(obj: GetDownloadRequirement);
 
 
-	public void DownloadContent()
+	public async Task Download()
 	{
-		download = GetDownload();
+		if (_downloading)
+		{
+			LogWarning(message: $"[{title}] is already downloading.");
+			
+			return;
+		}
+
+		_downloading = true;
+
+		downloadCompleted = downloadCancelled = downloadFaulted = false;
+
+		Log($"[{title}] content download begun.");
 
 		onDownloadBegun?.Invoke();
 
-		download.onDownloadProgress += DownloadProgressHandler;
-	}
-
-
-	private void DownloadProgressHandler(object sender,
-	                                     S3.DownloadProgressArgs a)
-	{
-		onDownloadPacket?.Invoke(arg1: (ulong)a.transferredBytes,
-		                         arg2: a.progress);
-
-//		if (!a.isDone) return; // isDone is borked
-
-		Log(a.progress); // This never actually reaches 1??
-
-		if (Math.Abs(a.progress - 1.0f) > Mathf.Epsilon) return;
+		var request = new TransferUtilityDownloadDirectoryRequest
+		              {
+			              LocalDirectory = LocalPath,
+			              BucketName     = S3.c_S3BucketName,
+			              S3Directory    = RemotePath
+		              };
 		
-		Log("Download completed successfully");
+		request.DownloadedDirectoryProgressEvent += OnDownloadDirectoryProgress;
+
+		_cancellationTokenSource = new CancellationTokenSource();
+
+		var t = S3.transferUtility.DownloadDirectoryAsync(request: request,
+		                                                  cancellationToken: _cancellationTokenSource.Token);
+
+		while (!(downloadCompleted || downloadCancelled || downloadFaulted))
+		{
+			downloadCancelled = t.IsCanceled;
+			downloadCompleted = t.IsCompleted;
+			downloadFaulted   = t.IsFaulted;
+			
+			onDownloadPacket?.Invoke(arg1: (ulong)downloadTransferredBytes,
+			                         arg2: (float)downloadTransferredBytes / downloadTotalBytes);
+			
+			await Task.Yield();
+		}
+		
+		Log($"[{title}] content download complete.");
+
+		_downloading = false;
+
+		request.DownloadedDirectoryProgressEvent -= OnDownloadDirectoryProgress;
 
 		onDownloadComplete?.Invoke();
-		
-		onContentAvailabilityChange?.Invoke(true);
 
-		download.onDownloadProgress -= DownloadProgressHandler;
+		onContentAvailabilityChange?.Invoke(obj: true);
 	}
-
 	
-	private S3.Download GetDownload() => new S3.Download(localFolderPath: LocalPath,
-	                                                     remoteFolderPath: RemotePath);
+	private void OnDownloadDirectoryProgress(object s,
+	                                         DownloadDirectoryProgressArgs a)
+	{
+		downloadTotalNumberOfFiles               = a.TotalNumberOfFiles;
+		downloadNumberOfFilesDownloaded          = a.NumberOfFilesDownloaded;
+		downloadTotalBytes                       = a.TotalBytes;
+		downloadTransferredBytes                 = a.TransferredBytes;
+		downloadCurrentFile                      = a.CurrentFile;
+		downloadTransferredBytesForCurrentFile   = a.TransferredBytesForCurrentFile;
+		downloadTotalNumberOfBytesForCurrentFile = a.TotalNumberOfBytesForCurrentFile;
+	}
+	
+	public void CancelDownload()
+	{
+		if (!_downloading) return;
+
+		_cancellationTokenSource.Cancel();
+
+		_downloading = false;
+
+		_cancellationTokenSource = null;
+	}
 
 
 	public void DeleteContent()
@@ -259,7 +330,7 @@ public class Experience
 		
 		UpdateDownloadRequirementText();
 		
-		onContentAvailabilityChange?.Invoke(false);
+		onContentAvailabilityChange?.Invoke(obj: false);
 
 	}
 

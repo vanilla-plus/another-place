@@ -11,7 +11,7 @@ using SimpleJSON;
 using System.Threading.Tasks;
 using Amazon.S3.Transfer;
 
-using AWS;
+//using AWS;
 
 using UnityEngine.Serialization;
 

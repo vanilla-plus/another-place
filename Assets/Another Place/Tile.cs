@@ -20,7 +20,7 @@ public class Tile : MonoBehaviour
 	public Experience experience;
 
 	public bool dirty = false;
-	
+
 	[Header("Hover state")]
 	public Tile_State hover = new Tile_State();
 
@@ -32,10 +32,10 @@ public class Tile : MonoBehaviour
 
 	[Header("Download Request State")]
 	public Tile_State download_request = new Tile_State();
-	
+
 	[Header("Downloading State")]
 	public Tile_State downloading = new Tile_State();
-	
+
 	// Static Actions
 
 	public static Action<Tile, Tile> OnSelectedChanged;
@@ -44,10 +44,11 @@ public class Tile : MonoBehaviour
 
 	[Tooltip("Invoked when the tile receives its Experience data payload class.")]
 	public Action<Experience, JSONNode> onPopulate;
-	
+
 	[Header("Window Size")]
 	public float minWindowSize = 700.0f;
 	public float maxWindowSize = 1920.0f;
+
 
 	public void Awake()
 	{
@@ -55,6 +56,7 @@ public class Tile : MonoBehaviour
 
 		select.onActive += HandleBecomingSelected;
 	}
+
 
 	private void HandleBecomingSelected()
 	{
@@ -65,11 +67,12 @@ public class Tile : MonoBehaviour
 		Selected = this;
 
 		OnSelectedChanged?.Invoke(arg1: oldSelected,
-									arg2: this);
+		                          arg2: this);
 	}
 
 
-	public async Task Populate(Experience e, JSONNode page)
+	public async Task Populate(Experience e,
+	                           JSONNode page)
 	{
 		gameObject.name = e.title;
 
@@ -115,5 +118,13 @@ public class Tile : MonoBehaviour
 
 		focus.active = hover.active; // The tile may still be focused i.e. if a pointer is hovering over it.
 	}
-	
+
+
+	[ContextMenu("Download")]
+	public void Download() => experience.Download();
+
+
+	[ContextMenu("Cancel Download")]
+	public void CancelDownload() => experience.CancelDownload();
+
 }

@@ -474,6 +474,18 @@ MonoBehaviour:
     remoteByteSizeString: 
     localByteSize: 0
     localByteSizeString: 
+    _downloading: 0
+    downloadCompleted: 0
+    downloadCancelled: 0
+    downloadFaulted: 0
+    downloadTotalNumberOfFiles: 0
+    downloadNumberOfFilesDownloaded: 0
+    downloadTotalBytes: 0
+    downloadTransferredBytes: 0
+    downloadCurrentFile: 
+    downloadTransferredBytesForCurrentFile: 0
+    downloadTotalNumberOfBytesForCurrentFile: 0
+  dirty: 0
   hover:
     _active: 0
     _normal: 0
@@ -483,6 +495,14 @@ MonoBehaviour:
     _normal: 0
     normalRate: 2
   focus:
+    _active: 0
+    _normal: 0
+    normalRate: 2
+  download_request:
+    _active: 0
+    _normal: 0
+    normalRate: 2
+  downloading:
     _active: 0
     _normal: 0
     normalRate: 2
@@ -583,6 +603,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2310565200990606820}
   - component: {fileID: 592409268374389194}
+  - component: {fileID: 2881081025376292504}
   - component: {fileID: 4608128465516027593}
   - component: {fileID: 2094682383583650109}
   - component: {fileID: 4283097745986194308}
@@ -620,6 +641,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4829852297631617242}
   m_CullTransparentMesh: 1
+--- !u!114 &2881081025376292504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4829852297631617242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66c9df4bbd2721c4a82ae8d3c66d3368, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  element: {fileID: 4608128465516027593}
 --- !u!114 &4608128465516027593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1291,6 +1325,7 @@ GameObject:
   - component: {fileID: 8211475782630841086}
   - component: {fileID: 4100450687844239933}
   - component: {fileID: 3868785867512513206}
+  - component: {fileID: 1277792043832404987}
   m_Layer: 5
   m_Name: Icon
   m_TagString: Untagged
@@ -1374,6 +1409,21 @@ MonoBehaviour:
   savedColor: {r: 1, g: 1, b: 1, a: 1}
   savedTextUV0: {x: 0, y: 0, z: 0, w: 0}
   savedFill: 1
+--- !u!114 &1277792043832404987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7346217616301939660}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee1f46ea1e313794d87155221b073b36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  image: {fileID: 4100450687844239933}
+  availableIcon: {fileID: 21300000, guid: 27a5c2a03848fc1468670099081ab065, type: 3}
+  unavailableIcon: {fileID: 21300000, guid: 8411a0982dc3c3b4f95c632a234d1a59, type: 3}
 --- !u!1 &7437546799758898307
 GameObject:
   m_ObjectHideFlags: 0

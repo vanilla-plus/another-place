@@ -1232,7 +1232,7 @@ public class Selection_Tile : MonoBehaviour
     }
 
 
-    public void DownloadContent() => experience.DownloadContent();
+    public void DownloadContent() => experience.Download();
     
     public void DeleteContent() => experience.DeleteContent();
 
