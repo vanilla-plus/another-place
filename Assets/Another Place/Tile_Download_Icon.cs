@@ -12,6 +12,13 @@ public class Tile_Download_Icon : Tile_Element
 	public Sprite availableIcon;
 	public Sprite unavailableIcon;
 	
-	private void Start() => tile.experience.onContentAvailabilityChange += b => image.sprite = b ? availableIcon : unavailableIcon;
+	private void Start()
+	{
+		tile.experience.onContentAvailabilityChange += UpdateIcon;
+
+		UpdateIcon(tile.experience.ContentFullyDownloaded);
+	}
+
+	private void UpdateIcon(bool available) => image.sprite = available ? availableIcon : unavailableIcon;
 
 }

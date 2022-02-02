@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using CurvedUI;
+
 using SimpleJSON;
 
 using UnityEngine;
@@ -45,18 +47,21 @@ public class Menu : MonoBehaviour
 
 		_rect.anchoredPosition = Vector2.zero;
 
-		Place.onCatalogueFetched += Initialize;
+		Place.onCatalogueFetched += BuildUI;
+
+//		Initialize();
 	}
 
-
-	public async void Initialize(JSONArray catalogue)
+	[ContextMenu("Build UI")]
+	public async void BuildUI()
 	{
+		
 		experiences = Place.Catalogue;
 
 		Tile_Layout_Flex_Horizontal prev = null;
 
 		var i = -1;
-		
+
 		foreach (var e in experiences)
 		{
 			var newTile = Instantiate(original: tilePrefab,
@@ -66,18 +71,24 @@ public class Menu : MonoBehaviour
 			newTile.layout.previous = prev;
 
 			prev = newTile.layout;
-			
+
 			tiles.Add(newTile);
 
-			await newTile.Populate(e, catalogue[++i]);
+			newTile.Populate(e: e,
+			                 page: Place.rawCatalogue[++i]);
 		}
 
 		// This is required for Tile scripts to have enough time to initialize themselves.
-		
+
 		await Task.Yield();
 
-//		tiles[0].Select();
+		foreach (var e in experiences)
+		{
+			e.UpdateContentAvailability();
+		}
 		
+//		tiles[0].Select();
+
 		enabled = true;
 
 //		await Task.Delay(1000);
@@ -85,6 +96,9 @@ public class Menu : MonoBehaviour
 		ArrangeTileLayout();
 	}
 
+
+	[ContextMenu("Add CurvedUI to tiles")]
+	public void AddCurvedUIEffectToChildren() => GetComponentInParent<CurvedUISettings>().AddEffectToChildren();
 
 //	void Update()
 //	{

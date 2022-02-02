@@ -29,6 +29,9 @@ public class Tile : MonoBehaviour
 
 	[Header("Focus state")]
 	public Tile_State focus = new Tile_State();
+	
+	[Header("Available state")]
+	public Tile_State available = new Tile_State();
 
 	[Header("Download Request State")]
 	public Tile_State download_request = new Tile_State();
@@ -58,6 +61,11 @@ public class Tile : MonoBehaviour
 	}
 
 
+	public void Start()
+	{
+		experience.onContentAvailabilityChange += a => available.active = a;
+	}
+
 	private void HandleBecomingSelected()
 	{
 		if (!NothingSelected) Selected.Deselect();
@@ -71,8 +79,8 @@ public class Tile : MonoBehaviour
 	}
 
 
-	public async Task Populate(Experience e,
-	                           JSONNode page)
+	public void Populate(Experience e,
+	                     JSONNode page)
 	{
 		gameObject.name = e.title;
 
@@ -126,5 +134,8 @@ public class Tile : MonoBehaviour
 
 	[ContextMenu("Cancel Download")]
 	public void CancelDownload() => experience.CancelDownload();
+	
+	[ContextMenu("Delete Content")]
+	public void DeleteContent() => experience.DeleteContent();
 
 }

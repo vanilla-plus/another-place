@@ -141,7 +141,7 @@ public class AppManager : MonoBehaviour
     }
 
 
-    public async void Initialise(JSONArray catalogue)
+    public async void Initialise()
     {
         if (initialised) return;
         initialised = true;

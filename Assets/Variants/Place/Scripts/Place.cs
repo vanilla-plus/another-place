@@ -113,10 +113,11 @@ public static class Place
 	private static bool _RemoteConfigFetched = false;
 
 	private static bool _CatalogueFetched = false;
-	
+
+	public static JSONArray        rawCatalogue;
 	public static List<Experience> Catalogue = new List<Experience>(16);
 
-	public static Action<JSONArray> onCatalogueFetched;
+	public static Action onCatalogueFetched;
 
 	// AWS S3 Credentials
 
@@ -153,28 +154,26 @@ public static class Place
 		
 		InitializeRemoteConfig();
 		
-		await InitializeContentEnvironment();
-		
 		FetchCatalogue();
 	}
 
 
-	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-	private static async void PostSceneInitialize()
-	{
-		// Wait for the fetch to complete, or 10 seconds to elapse.
-		
-		for (var i = 10;
-		     i > 0;
-		     i--)
-			if (!_CatalogueFetched)
-				await Task.Delay(1000);
+//	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+//	private static async void PostSceneInitialize()
+//	{
+//		// Wait for the fetch to complete, or 10 seconds to elapse.
+//		
+//		for (var i = 10;
+//		     i > 0;
+//		     i--)
+//			if (!_CatalogueFetched)
+//				await Task.Delay(1000);
 
 		// Hopefully the Catalogue Fetch has completed by now... because we need to ask each Experience to fetch its remote size.
 
-		foreach (var e in Catalogue) await e.UpdateRemoteByteSize();
+//		foreach (var e in Catalogue) await e.UpdateRemoteByteSize();
 
-		LogError("Here are the download requirements for each experience");
+//		LogError("Here are the download requirements for each experience");
 		
 //		foreach (var e in Catalogue) Log(e.GetDownloadRequirement);
 
@@ -183,7 +182,7 @@ public static class Place
 //		AppManager.Instance.Initialise();
 
 //		Menu.i.Initialize();
-	}
+//	}
 
 
 	private static async Task WaitForInternetConnection(int timeOutHealth = 10,
@@ -231,29 +230,17 @@ public static class Place
 	
 	private static void InitializeRemoteConfig() => ConfigManager.FetchCompleted += ApplyRemoteConfigSettings;
 
-	private static async Task InitializeContentEnvironment()
-	{
-//		await ContentManager.BuildFolderLists();
-		
-//		ContentManager.BuildRootFolder();
-		
-	}
-	
 	public static async void FetchCatalogue()
 	{
 		_CatalogueFetched = false;
 		
-		// Fetch thumbnails and wait until it's done.
-
 		await FetchThumbnails();
 		
-//		while (!_ThumbnailsFetched) await Task.Delay(500);
+		await FetchRemoteConfig();
 		
-		// Fetch remote config and wait until it's done.
-		
-		FetchRemoteConfig();
-		
-		while (!_RemoteConfigFetched) await Task.Delay(500);
+		if (!Application.isPlaying) return;
+
+		await BuildCatalogue();
 
 		_CatalogueFetched = true;
 	}
@@ -275,7 +262,7 @@ public static class Place
 		Log($"Thumbnail fetch completed - [{_ThumbnailsFetched}]");
 	}
 
-	private static void FetchRemoteConfig()
+	private static async Task FetchRemoteConfig()
 	{
 		_RemoteConfigFetched = false;
 		
@@ -283,26 +270,37 @@ public static class Place
 		
 		ConfigManager.FetchConfigs(userAttributes: new userAttributes(),
 		                           appAttributes: new appAttributes());
-	}
 
+		while (!_RemoteConfigFetched) await Task.Delay(250);
+	}
 
 	private static void ApplyRemoteConfigSettings(ConfigResponse configResponse)
 	{
-		LogWarning("Remote config fetch complete!");
+		Log($"Remote config fetch complete! Origin is [{configResponse.requestOrigin}]");
 		
-		Log($"Remote config request origin [{configResponse.requestOrigin}]");
-		
+		_RemoteConfigFetched = true;
+	}
+
+	private static async Task BuildCatalogue()
+	{
 		var json = JSON.Parse(ConfigManager.appConfig.GetJson("manifest"));
 
-		var episodes = json["Episodes"].AsArray;
+		rawCatalogue = json["Episodes"].AsArray;
 
 		Catalogue.Clear();
 
-		foreach (var e in episodes) Catalogue.Add(new Experience(node: e));
+		foreach (var page in rawCatalogue)
+		{
+			var e = new Experience(page);
+			
+			Catalogue.Add(e);
 
-		onCatalogueFetched?.Invoke(episodes);
+			await e.UpdateRemoteByteSize();
+		}
+
+		Log($"Catalogue updated - {Catalogue.Count} experiences found.");
 		
-		_RemoteConfigFetched = true;
+		onCatalogueFetched?.Invoke();
 	}
 	
 }

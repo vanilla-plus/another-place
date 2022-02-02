@@ -1129,7 +1129,7 @@ public class Selection_Tile : MonoBehaviour
 
         // Connect all our important UI update events
         
-        exp.onContentAvailabilityChange += ContentAvailabilityChangeHandler;
+//        exp.onContentAvailabilityChange += ContentAvailabilityChangeHandler;
         exp.onDownloadRequirementUpdate += DownloadRequirementUpdateHandler;
         exp.onDownloadBegun             += DownloadBegunHandler;
         exp.onDownloadPacket            += DownloadPacketHandler;
@@ -1141,7 +1141,7 @@ public class Selection_Tile : MonoBehaviour
         
         // Ask the experience to fetch its remote size from S3
 
-        await exp.UpdateRemoteByteSize();
+//        await exp.UpdateRemoteByteSize();
         
         // Ask the experience to update and emit if its locally available on device storage
         

@@ -156,7 +156,7 @@ public class Experience
 
 		UpdateLocalByteSize();
 		
-		UpdateRemoteByteSize();
+//		UpdateRemoteByteSize();
 
 //		Log(GetDownloadRequirement);
 	}
@@ -265,6 +265,15 @@ public class Experience
 			              S3Directory    = RemotePath
 		              };
 		
+		// Reset all the download metrics
+		
+		downloadTotalNumberOfFiles               = -1;
+		downloadNumberOfFilesDownloaded          = -1;
+		downloadTotalBytes                       = -1;
+		downloadTransferredBytes                 = -1;
+		downloadTransferredBytesForCurrentFile   = -1;
+		downloadTotalNumberOfBytesForCurrentFile = -1;
+		
 		request.DownloadedDirectoryProgressEvent += OnDownloadDirectoryProgress;
 
 		_cancellationTokenSource = new CancellationTokenSource();
@@ -272,27 +281,37 @@ public class Experience
 		var t = S3.transferUtility.DownloadDirectoryAsync(request: request,
 		                                                  cancellationToken: _cancellationTokenSource.Token);
 
+		// The download takes a few frames to start.
+		// We can wait for the first OnDownloadDirectoryProgress to come through until then.
+
+		while (!(downloadCancelled || downloadFaulted) && downloadTransferredBytes == -1) await Task.Yield();
+		
 		while (!(downloadCompleted || downloadCancelled || downloadFaulted))
 		{
 			downloadCancelled = t.IsCanceled;
 			downloadCompleted = t.IsCompleted;
 			downloadFaulted   = t.IsFaulted;
-			
+
 			onDownloadPacket?.Invoke(arg1: (ulong)downloadTransferredBytes,
 			                         arg2: (float)downloadTransferredBytes / downloadTotalBytes);
-			
+
 			await Task.Yield();
 		}
-		
-		Log($"[{title}] content download complete.");
-
-		_downloading = false;
 
 		request.DownloadedDirectoryProgressEvent -= OnDownloadDirectoryProgress;
 
-		onDownloadComplete?.Invoke();
+		_downloading                             =  false;
 
-		onContentAvailabilityChange?.Invoke(obj: true);
+		var downloadSuccessful = downloadTransferredBytes == downloadTotalBytes;
+		
+		if (downloadSuccessful)
+		{
+			Log($"[{title}] content download complete.");
+
+			onDownloadComplete?.Invoke();
+		}
+
+		onContentAvailabilityChange?.Invoke(downloadSuccessful);
 	}
 	
 	private void OnDownloadDirectoryProgress(object s,
@@ -319,7 +338,7 @@ public class Experience
 	}
 
 
-	public void DeleteContent()
+	public async Task DeleteContent()
 	{
 		if (!Directory.Exists(path: LocalPath)) return;
 
@@ -329,6 +348,13 @@ public class Experience
 		UpdateLocalByteSize();
 		
 		UpdateDownloadRequirementText();
+
+		// If we don't let the method take a breather here, we seem to get performance spikes on one of the following frames.
+		// If we remove this delay and turn the method back into a standard void, the next frames deltaTime is 0.333f (the projects maximum).
+		// This may only be possible due to Editor overhead or a Windows-environment specific issue, but it can't hurt to give the delete
+		// operation some breathing room anyway.
+		
+		await Task.Delay(250);
 		
 		onContentAvailabilityChange?.Invoke(obj: false);
 

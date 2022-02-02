@@ -29,7 +29,7 @@ public class Tile_Text_Markup : Tile_Element
 	                      JSONNode page)
 	{
 //		tile.onPopulate -= Populate;
-		
+
 		var content = page[key].Value;
 
 		if (content == null)
