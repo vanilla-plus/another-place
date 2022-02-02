@@ -33,11 +33,14 @@ public class Tile : MonoBehaviour
 	[Header("Available state")]
 	public Tile_State available = new Tile_State();
 
-	[Header("Download Request State")]
-	public Tile_State download_request = new Tile_State();
+	[Header("Download Begin State")]
+	public Tile_State download_begin = new Tile_State();
 
 	[Header("Downloading State")]
 	public Tile_State downloading = new Tile_State();
+	
+	[Header("Download Complete State")]
+	public Tile_State download_complete = new Tile_State();
 
 	// Static Actions
 
@@ -127,10 +130,8 @@ public class Tile : MonoBehaviour
 		focus.active = hover.active; // The tile may still be focused i.e. if a pointer is hovering over it.
 	}
 
-
 	[ContextMenu("Download")]
 	public void Download() => experience.Download();
-
 
 	[ContextMenu("Cancel Download")]
 	public void CancelDownload() => experience.CancelDownload();

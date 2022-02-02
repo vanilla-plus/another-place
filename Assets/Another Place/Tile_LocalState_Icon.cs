@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Tile_Download_Icon : Tile_Element
+public class Tile_LocalState_Icon : Tile_Element
 {
 
 	public Image image;

@@ -5,7 +5,7 @@ using TMPro;
 
 using UnityEngine;
 
-public class Tile_Download_Text : Tile_Element
+public class Tile_LocalState_Text : Tile_Element
 {
 
 	public TextMeshProUGUI element;

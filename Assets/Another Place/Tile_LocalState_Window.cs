@@ -5,7 +5,7 @@ using UnityEngine;
 
 using Vanilla.Easing;
 
-public class Tile_Download_Window : Tile_Element
+public class Tile_LocalState_Window : Tile_Element
 {
 
 	public RectTransform rect;

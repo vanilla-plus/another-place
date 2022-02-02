@@ -160,7 +160,7 @@ MonoBehaviour:
   interactable: 1
   blocksRaycasts: 1
   forceUseBoxCollider: 0
-  angle: -90
+  angle: 90
   preserveAspect: 1
   vertAngle: 90
   ringFill: 0.5

@@ -1,18 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
 
-public class Tile_Group_Available : MonoBehaviour
+using Vanilla.Easing;
+
+public class Tile_Group_Available : Tile_Element
 {
-    // Start is called before the first frame update
-    void Start()
+
+    public CanvasGroup group;
+
+    private void Start()
     {
-        
+        tile.available.onActiveNormalStart      += () => group.gameObject.SetActive(true);
+        tile.available.onInactiveNormalComplete += () => group.gameObject.SetActive(false);
+
+        tile.available.onActiveNormalFrame += n => group.alpha = n.InOutQuadratic();
+
+        tile.available.onInactiveNormalFrame += n => group.alpha = n.InOutQuadratic();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

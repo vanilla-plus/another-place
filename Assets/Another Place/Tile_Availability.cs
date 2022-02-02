@@ -34,6 +34,12 @@ public class Tile_Availability : Tile_Element
 			                                        unavailableGroup.alpha = (1.0f - n).InOutQuadratic();
 		                                        };
 
+		if (!tile.experience.ContentFullyDownloaded)
+		{
+			unavailableGroup.gameObject.SetActive(true);
+			unavailableGroup.alpha = 1.0f;
+		}
+		
 //		tile.experience.onContentAvailabilityChange += a =>
 //		                                               {
 ////			                                               Debug.Log($"[{tile.experience.title}] is now [{(a ? "available" : "unavailable")}]");

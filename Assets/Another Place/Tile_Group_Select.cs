@@ -2,28 +2,28 @@ using UnityEngine;
 
 using Vanilla.Easing;
 
-public class Tile_Hover_Group : Tile_Element
+public class Tile_Group_Select : Tile_Element
 {
 
 	public CanvasGroup group;
 
 	public float scaleMin = 1.0f;
-	public float scaleMax = 2.0f;
+	public float scaleMax = 1.0f;
 
 
 	public override void Awake()
 	{
 		base.Awake();
 
-		tile.hover.onActiveNormalStart += () => group.gameObject.SetActive(true);
+		tile.select.onActiveNormalStart += () => group.gameObject.SetActive(true);
 
-		tile.hover.onActiveNormalFrame   += FadeGroup;
-		tile.hover.onInactiveNormalFrame += FadeGroup;
+		tile.select.onActiveNormalFrame += FadeGroup;
+		tile.@select.onInactiveNormalFrame += FadeGroup;
 
-		tile.hover.onActiveNormalFrame   += ScaleGroup;
-		tile.hover.onInactiveNormalFrame += ScaleGroup;
+		tile.@select.onActiveNormalFrame   += ScaleGroup;
+		tile.@select.onInactiveNormalFrame += ScaleGroup;
 
-		tile.hover.onInactiveNormalComplete += () => group.gameObject.SetActive(false);
+		tile.@select.onInactiveNormalComplete += () => group.gameObject.SetActive(false);
 	}
 
 
