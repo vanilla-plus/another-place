@@ -125,8 +125,10 @@ public static class Place
 	{
 
 		internal const string c_S3BucketName = "mhoplaceappcontent";
+//		internal const string c_S3BucketName = "story-machine";
 
 		private const string identityPoolId = "ap-southeast-2:b5d45675-818f-4635-86c6-c8f3915280c2";
+//		private const string identityPoolId = "ap-southeast-2:2473494b-847f-4a44-b944-e57e51efac86";
 
 		internal static readonly RegionEndpoint regionEndpoint = RegionEndpoint.APSoutheast2;
 

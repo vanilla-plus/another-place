@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
 
 using Vanilla.Easing;
@@ -32,8 +33,7 @@ public class Tile_LocalState_Window : Tile_Element
 	{
 		targetSize = newSize;
 
-		// If the tile select normal is 'full' i.e. 1.0
-		if (Math.Abs(tile.select.normal - 1.0f) < Mathf.Epsilon) SetSizeImmediately();
+		if (tile.select.fullyActive) SetSizeImmediately();
 	}
 
 

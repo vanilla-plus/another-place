@@ -32,12 +32,20 @@ public class Tile_State
         }
     }
 
+    [SerializeField]
+    private bool _fullyActive = false;
+    public  bool fullyActive => _fullyActive;
+
+    [SerializeField]
+    private bool _fullyInactive = true;
+    public bool fullyInactive => _fullyActive;
+    
     public Action onActive;
     public Action onInactive;
 
     [SerializeField]
-    public float _normal;
-    public float normal
+    private float _normal;
+    protected float normal
     {
         get => _normal;
         set => _normal = Mathf.Clamp01(value);
@@ -54,12 +62,28 @@ public class Tile_State
     public Action<float> onInactiveNormalFrame;
     public Action onInactiveNormalComplete;
 
-		
+
+    public Tile_State()
+    {
+        UpdateFullyActive();
+        UpdateFullyInactive();
+    }
+
+    private void UpdateFullyActive() => _fullyActive = 1.0f - _normal < Mathf.Epsilon;
+
+    private void UpdateFullyInactive() => _fullyInactive = _normal < Mathf.Epsilon;
+
 
     private async Task Fill()
     {
-        if (Mathf.Approximately(a: _normal,
-            b: 0.0f)) onActiveNormalStart?.Invoke();
+//        UpdateFullyInactive();
+
+        if (_fullyInactive)
+        {
+            onActiveNormalStart?.Invoke();
+
+            _fullyInactive = false;
+        }
 
         while (_active && _normal < 1.0f)
         {
@@ -70,15 +94,21 @@ public class Tile_State
             await Task.Yield();
         }
 
-        if (Mathf.Approximately(a: _normal,
-            b: 1.0f)) onActiveNormalComplete?.Invoke();
+        UpdateFullyActive();
+        
+        if (_fullyActive) onActiveNormalComplete?.Invoke();
     }
-
 
     private async Task Drain()
     {
-        if (Mathf.Approximately(a: _normal,
-            b: 1.0f)) onInactiveNormalStart?.Invoke();
+//        UpdateFullyActive();
+
+        if (_fullyActive)
+        {
+            onInactiveNormalStart?.Invoke();
+
+            _fullyActive = false;
+        }
 
         while (!_active &&
                _normal > 0.0f)
@@ -90,8 +120,54 @@ public class Tile_State
             await Task.Yield();
         }
 
-        if (Mathf.Approximately(a: _normal,
-            b: 0.0f)) onInactiveNormalComplete?.Invoke();
+        UpdateFullyInactive();
+        
+        if (_fullyInactive) onInactiveNormalComplete?.Invoke();
+    }
+    
+    public void FillInstant()
+    {
+        if (_fullyInactive)
+        {
+            onActiveNormalStart?.Invoke();
+
+            _fullyInactive = false;
+        }
+
+        _normal = 1.0f;
+        
+        onActiveNormalFrame?.Invoke(_normal);
+
+        _fullyActive = true;
+        
+        onActiveNormalComplete?.Invoke();
+    }
+    
+    public void DrainInstant()
+    {
+        if (_fullyActive)
+        {
+            onInactiveNormalStart?.Invoke();
+
+            _fullyActive = false;
+        }
+
+        _normal = 0.0f;
+        
+        onInactiveNormalFrame?.Invoke(_normal);
+
+        _fullyInactive = true;
+        
+        onInactiveNormalComplete?.Invoke();
+    }
+
+
+    public void FlipInstant()
+    {
+        if (_active)
+            DrainInstant();
+        else
+            FillInstant();
     }
 
 }
